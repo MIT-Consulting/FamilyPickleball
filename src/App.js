@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
@@ -9,6 +9,8 @@ import PlayerList from './components/PlayerList';
 import TeamList from './components/TeamList';
 import './App.css';
 import { HashRouter as Router } from 'react-router-dom';
+import { ref, onValue, set, remove } from 'firebase/database';
+import { db } from './firebase-config';
 
 const theme = createTheme({
   palette: {
@@ -44,6 +46,22 @@ function App() {
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState([]);
 
+  // Load data when component mounts
+  useEffect(() => {
+    const playersRef = ref(db, 'players');
+    const teamsRef = ref(db, 'teams');
+
+    onValue(playersRef, (snapshot) => {
+      const data = snapshot.val();
+      setPlayers(data ? Object.values(data) : []);
+    });
+
+    onValue(teamsRef, (snapshot) => {
+      const data = snapshot.val();
+      setTeams(data ? Object.values(data) : []);
+    });
+  }, []);
+
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -56,7 +74,7 @@ function App() {
       gender: gender,
       rank: players.length + 1
     };
-    setPlayers([...players, newPlayer]);
+    set(ref(db, `players/${newPlayer.id}`), newPlayer);
   };
 
   const handleUpdatePlayer = (playerId, updates) => {
@@ -66,18 +84,16 @@ function App() {
   };
 
   const handleDeletePlayer = (playerId) => {
-    // First remove player from their team if they're in one
+    remove(ref(db, `players/${playerId}`));
+    // Update team if player was assigned
     const playerToDelete = players.find(p => p.id === playerId);
-    if (playerToDelete && playerToDelete.teamId) {
+    if (playerToDelete?.teamId) {
       const team = teams.find(t => t.id === playerToDelete.teamId);
       if (team) {
-        handleUpdateTeam(team.id, {
-          playerIds: team.playerIds.filter(id => id !== playerId)
-        });
+        const updatedPlayerIds = team.playerIds.filter(id => id !== playerId);
+        set(ref(db, `teams/${team.id}/playerIds`), updatedPlayerIds);
       }
     }
-    // Then remove the player
-    setPlayers(players.filter(player => player.id !== playerId));
   };
 
   const handleMovePlayer = (currentIndex, direction) => {
