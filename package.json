@@ -1,8 +1,8 @@
 {
-  "name": "family-pickleball",
+  "name": "MillerFamilyPickleball",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://mit-consulting.github.io/pickleball-tournament/",
+  "homepage": "https://mit-consulting.github.io/MillerFamilyPickleball/",
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
