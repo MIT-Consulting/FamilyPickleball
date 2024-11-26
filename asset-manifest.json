@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/MillerFamilyPickleball/static/css/main.f9bbaa1b.css",
+    "main.js": "/MillerFamilyPickleball/static/js/main.73d3f001.js",
+    "index.html": "/MillerFamilyPickleball/index.html",
+    "main.f9bbaa1b.css.map": "/MillerFamilyPickleball/static/css/main.f9bbaa1b.css.map",
+    "main.73d3f001.js.map": "/MillerFamilyPickleball/static/js/main.73d3f001.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f9bbaa1b.css",
+    "static/js/main.73d3f001.js"
+  ]
+}
