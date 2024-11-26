@@ -8,6 +8,7 @@ import Sidebar from './components/Sidebar';
 import PlayerList from './components/PlayerList';
 import TeamList from './components/TeamList';
 import './App.css';
+import { HashRouter as Router } from 'react-router-dom';
 
 const theme = createTheme({
   palette: {
@@ -158,56 +159,58 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden' }}>
-        <Sidebar 
-          isOpen={isSidebarOpen}
-          onToggle={toggleSidebar}
-          onAddPlayer={handleAddPlayer}
-          onAddTeam={handleAddTeam}
-          teams={teams}
-        />
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            p: 1,
-            transition: 'all 0.2s',
-            width: '100%'
-          }}
-        >
-          {!isSidebarOpen && (
-            <IconButton
-              color="inherit"
-              aria-label="open drawer"
-              onClick={toggleSidebar}
-              edge="start"
-              sx={{ mb: 1 }}
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
-          <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
-            <PlayerList
-              players={players}
-              teams={teams}
-              onUpdatePlayer={handleUpdatePlayer}
-              onDeletePlayer={handleDeletePlayer}
-              onMovePlayer={handleMovePlayer}
-              onAssignPlayer={handleAssignPlayer}
-            />
-            <TeamList
-              teams={teams}
-              players={players}
-              onUpdateTeam={handleUpdateTeam}
-              onDeleteTeam={handleDeleteTeam}
-              onAssignPlayer={handleAssignPlayer}
-            />
+    <Router>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden' }}>
+          <Sidebar 
+            isOpen={isSidebarOpen}
+            onToggle={toggleSidebar}
+            onAddPlayer={handleAddPlayer}
+            onAddTeam={handleAddTeam}
+            teams={teams}
+          />
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              p: 1,
+              transition: 'all 0.2s',
+              width: '100%'
+            }}
+          >
+            {!isSidebarOpen && (
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                onClick={toggleSidebar}
+                edge="start"
+                sx={{ mb: 1 }}
+              >
+                <MenuIcon />
+              </IconButton>
+            )}
+            <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
+              <PlayerList
+                players={players}
+                teams={teams}
+                onUpdatePlayer={handleUpdatePlayer}
+                onDeletePlayer={handleDeletePlayer}
+                onMovePlayer={handleMovePlayer}
+                onAssignPlayer={handleAssignPlayer}
+              />
+              <TeamList
+                teams={teams}
+                players={players}
+                onUpdateTeam={handleUpdateTeam}
+                onDeleteTeam={handleDeleteTeam}
+                onAssignPlayer={handleAssignPlayer}
+              />
+            </Box>
           </Box>
         </Box>
-      </Box>
-    </ThemeProvider>
+      </ThemeProvider>
+    </Router>
   );
 }
 
