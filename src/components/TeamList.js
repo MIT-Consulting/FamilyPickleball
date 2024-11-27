@@ -14,7 +14,8 @@ import {
   Stack,
   Tooltip,
   Select,
-  MenuItem
+  MenuItem,
+  Button
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -47,6 +48,8 @@ import AirIcon from '@mui/icons-material/Air';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import SortIcon from '@mui/icons-material/Sort';
 import { getSkillLevelColor, getSkillLevelText } from '../utils/skillLevels';
+import { db } from '../firebase-config';
+import { collection, addDoc } from 'firebase/firestore';
 
 const TEAM_ICONS = [
   { icon: StarIcon, name: 'Star' },
@@ -134,7 +137,8 @@ const TeamList = ({
   onDeleteTeam, 
   onAssignPlayer, 
   onRandomizeTeams,
-  onUpdatePlayer 
+  onUpdatePlayer,
+  onAddTeam
 }) => {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
@@ -144,6 +148,7 @@ const TeamList = ({
   const [editingSkill, setEditingSkill] = useState(null);
   const [editSkillLevel, setEditSkillLevel] = useState('');
   const [openSkillDropdown, setOpenSkillDropdown] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
 
   const getTeamSkillInfo = (team) => {
     if (!team || !team.playerIds) return { total: 0, average: 0 };
@@ -243,18 +248,18 @@ const TeamList = ({
   };
 
   const getRandomTeamName = () => {
-    // Filter out existing team names except the current editing team
-    const existingNames = new Set(teams.filter(t => t.id !== editingId).map(team => team.name));
+    // Filter out existing team names
+    const existingNames = new Set(teams.map(team => team.name));
     const availableNames = TEAM_NAME_SUGGESTIONS.filter(name => !existingNames.has(name));
     
     if (availableNames.length === 0) {
       // If all names are used, use the full list
       const randomIndex = Math.floor(Math.random() * TEAM_NAME_SUGGESTIONS.length);
-      setEditName(TEAM_NAME_SUGGESTIONS[randomIndex]);
+      setNewTeamName(TEAM_NAME_SUGGESTIONS[randomIndex]);
     } else {
       // Choose from available names
       const randomIndex = Math.floor(Math.random() * availableNames.length);
-      setEditName(availableNames[randomIndex]);
+      setNewTeamName(availableNames[randomIndex]);
     }
   };
 
@@ -296,8 +301,64 @@ const TeamList = ({
     }
   };
 
+  const addTeam = async (e) => {
+    e.preventDefault();
+    if (newTeamName.trim() === '') return;
+
+    try {
+      // Call the onAddTeam prop instead of directly adding to Firebase
+      onAddTeam(newTeamName.trim());
+      setNewTeamName('');
+    } catch (error) {
+      console.error('Error adding team:', error);
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
+      <Box 
+        component="form" 
+        onSubmit={addTeam}
+        sx={{ 
+          mb: 3,
+          p: 2,
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: 1,
+          display: 'flex',
+          gap: 2
+        }}
+      >
+        <TextField
+          fullWidth
+          label="Team Name"
+          value={newTeamName}
+          onChange={(e) => setNewTeamName(e.target.value)}
+          size="small"
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton
+                  onClick={getRandomTeamName}
+                  edge="end"
+                  size="small"
+                  title="Get random team name"
+                >
+                  <RefreshIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Button
+          type="submit"
+          variant="contained"
+          disabled={!newTeamName.trim()}
+          sx={{ minWidth: 120 }}
+        >
+          Add Team
+        </Button>
+      </Box>
+
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <Typography variant="h4">Teams</Typography>
         <Typography 

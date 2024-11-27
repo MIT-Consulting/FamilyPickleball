@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Typography,
   Box,
@@ -8,6 +8,11 @@ import {
   Select,
   MenuItem,
   Autocomplete,
+  Button,
+  ButtonGroup,
+  FormControl,
+  InputLabel,
+  Collapse
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -35,8 +40,10 @@ import AirIcon from '@mui/icons-material/Air';
 import ClearIcon from '@mui/icons-material/Clear';
 import SortIcon from '@mui/icons-material/Sort';
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { getSkillLevelColor, getSkillLevelText, getSkillLevelFullText } from '../utils/skillLevels';
-import { maleNames, femaleNames } from '../utils/genderPredictor';
+import { maleNames, femaleNames, predictGender } from '../utils/genderPredictor';
 
 const TEAM_ICONS = [
   { icon: StarIcon, name: 'Star' },
@@ -67,7 +74,7 @@ const FAMILY_COLORS = {
   Burton: '#81c784'   // Material-UI green[300]
 };
 
-const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlayer, onAssignPlayer }) => {
+const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlayer, onAssignPlayer, onAddPlayer }) => {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editSkillLevel, setEditSkillLevel] = useState('');
@@ -76,6 +83,32 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
   const [familyFilter, setFamilyFilter] = useState(null);
   const [openSkillDropdown, setOpenSkillDropdown] = useState(false);
   const [sortBySkill, setSortBySkill] = useState(false);
+  const [playerName, setPlayerName] = useState('');
+  const [skillLevel, setSkillLevel] = useState(1);
+  const [isMale, setIsMale] = useState(true);
+  const [family, setFamily] = useState('Miller');
+  const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
+  const playerNameInputRef = useRef(null);
+
+  // Predict gender when name changes
+  useEffect(() => {
+    if (playerName.trim()) {
+      const prediction = predictGender(playerName);
+      if (prediction === 'male') {
+        setIsMale(true);
+      } else if (prediction === 'female') {
+        setIsMale(false);
+      }
+      // For 'unknown', we keep the current selection
+    }
+  }, [playerName]);
+
+  // Add this effect to focus the input when expanded
+  useEffect(() => {
+    if (isAddPlayerOpen && playerNameInputRef.current) {
+      playerNameInputRef.current.focus();
+    }
+  }, [isAddPlayerOpen]);
 
   const handleEdit = (player, fromSkillLevel = false) => {
     setEditingId(player.id);
@@ -199,8 +232,175 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
     });
   }, [players, familyFilter, sortBySkill]);
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (playerName.trim() && skillLevel) {
+      onAddPlayer(playerName.trim(), skillLevel, isMale ? 'Male' : 'Female', family);
+      setPlayerName('');
+      setSkillLevel(1);
+      setIsMale(true);
+    }
+  };
+
+  // Helper function to get button styles
+  const getFamilyButtonStyle = (familyName) => ({
+    flex: 1,
+    bgcolor: family === familyName ? FAMILY_COLORS[familyName] : 'transparent',
+    '&:hover': {
+      bgcolor: family === familyName 
+        ? FAMILY_COLORS[familyName] 
+        : `${FAMILY_COLORS[familyName]}33` // 20% opacity version of the color
+    },
+    color: family === familyName ? 'black' : FAMILY_COLORS[familyName]
+  });
+
   return (
     <Box sx={{ p: 3 }}>
+      {/* Add Player Controls */}
+      <Paper 
+        sx={{ 
+          mb: 3,
+          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+          borderRadius: 1,
+        }}
+      >
+        <Box
+          onClick={() => setIsAddPlayerOpen(!isAddPlayerOpen)}
+          sx={{ 
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            cursor: 'pointer',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 0.03)'
+            }
+          }}
+        >
+          <Typography variant="subtitle1">Add New Player</Typography>
+          <IconButton 
+            size="small"
+            sx={{ color: 'inherit' }}
+          >
+            {isAddPlayerOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </IconButton>
+        </Box>
+
+        <Collapse in={isAddPlayerOpen}>
+          <Box 
+            component="form" 
+            onSubmit={handleSubmit}
+            sx={{ 
+              p: 2,
+              pt: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2
+            }}
+          >
+            {/* Name and Gender row */}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField
+                inputRef={playerNameInputRef}
+                label="Player Name"
+                value={playerName}
+                onChange={(e) => setPlayerName(e.target.value)}
+                variant="outlined"
+                size="small"
+                inputProps={{ spellCheck: 'true' }}
+                sx={{ flex: 1 }}
+              />
+              
+              <ButtonGroup variant="contained" sx={{ minWidth: 200 }}>
+                <Button
+                  onClick={() => setIsMale(true)}
+                  variant={isMale ? "contained" : "outlined"}
+                  sx={{ 
+                    flex: 1,
+                    bgcolor: isMale ? 'primary.main' : 'transparent'
+                  }}
+                >
+                  Male
+                </Button>
+                <Button
+                  onClick={() => setIsMale(false)}
+                  variant={!isMale ? "contained" : "outlined"}
+                  sx={{ 
+                    flex: 1,
+                    bgcolor: !isMale ? 'primary.main' : 'transparent'
+                  }}
+                >
+                  Female
+                </Button>
+              </ButtonGroup>
+            </Box>
+
+            {/* Skill and Family row */}
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <FormControl size="small" sx={{ flex: 1 }}>
+                <InputLabel>Skill Level</InputLabel>
+                <Select
+                  value={skillLevel}
+                  label="Skill Level"
+                  onChange={(e) => setSkillLevel(e.target.value)}
+                >
+                  {[1, 2, 3, 4, 5].map((level) => (
+                    <MenuItem key={level} value={level} sx={{ minWidth: '100%' }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        backgroundColor: getSkillLevelColor(level),
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: 1,
+                        color: 'black',
+                        width: 'calc(100% - 24px)',  // Leave space for the dropdown arrow
+                        mr: 'auto'  // Push the box to the left
+                      }}>
+                        Lvl {level} - {getSkillLevelText(level)}
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <ButtonGroup variant="contained" sx={{ minWidth: 300 }}>
+                <Button
+                  onClick={() => setFamily('Miller')}
+                  variant={family === 'Miller' ? "contained" : "outlined"}
+                  sx={getFamilyButtonStyle('Miller')}
+                >
+                  Miller
+                </Button>
+                <Button
+                  onClick={() => setFamily('Holcomb')}
+                  variant={family === 'Holcomb' ? "contained" : "outlined"}
+                  sx={getFamilyButtonStyle('Holcomb')}
+                >
+                  Holcomb
+                </Button>
+                <Button
+                  onClick={() => setFamily('Burton')}
+                  variant={family === 'Burton' ? "contained" : "outlined"}
+                  sx={getFamilyButtonStyle('Burton')}
+                >
+                  Burton
+                </Button>
+              </ButtonGroup>
+            </Box>
+
+            <Button
+              type="submit"
+              variant="contained"
+              fullWidth
+              disabled={!playerName.trim() || !skillLevel}
+            >
+              Add Player
+            </Button>
+          </Box>
+        </Collapse>
+      </Paper>
+
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
         <Typography variant="h4">Players</Typography>
         <Typography 
@@ -458,7 +658,7 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                       value=""
                       size="small"
                       sx={{ 
-                        ml: 1, 
+                        ml: 3, 
                         minWidth: 120,
                         '.MuiOutlinedInput-input': {
                           py: 0.5
@@ -482,7 +682,7 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                     <Box 
                       onClick={(e) => handleAddToTeamClick(player.id, e)}
                       sx={{ 
-                        ml: 1,
+                        ml: 3,
                         display: 'flex',
                         alignItems: 'center',
                         cursor: 'pointer',
@@ -567,7 +767,7 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                       value=""
                       size="small"
                       sx={{ 
-                        ml: 1, 
+                        ml: 3, 
                         minWidth: 120,
                         '.MuiOutlinedInput-input': {
                           py: 0.5
@@ -591,7 +791,7 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                     <Box 
                       onClick={(e) => handleAddToTeamClick(player.id, e)}
                       sx={{ 
-                        ml: 1,
+                        ml: 3,
                         display: 'flex',
                         alignItems: 'center',
                         cursor: 'pointer',

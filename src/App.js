@@ -8,7 +8,7 @@ import Sidebar from './components/Sidebar';
 import PlayerList from './components/PlayerList';
 import TeamList from './components/TeamList';
 import './App.css';
-import { HashRouter as Router } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ref, onValue, set, remove } from 'firebase/database';
 import { db } from './firebase-config';
 import StarIcon from '@mui/icons-material/Star';
@@ -186,16 +186,21 @@ function App() {
     });
   };
 
-  const handleAddTeam = (teamName, teamColor) => {
-    const nextIcon = getNextTeamIcon();
-    const newTeam = {
-      id: Date.now(),
-      name: teamName,
-      playerIds: [],
-      color: teamColor || getNextTeamColor(),
-      iconName: nextIcon.name
-    };
-    set(ref(db, `teams/${newTeam.id}`), newTeam);
+  const handleAddTeam = (teamName) => {
+    try {
+      const newTeam = {
+        id: Date.now(),
+        name: teamName,
+        color: getRandomColor(),
+        iconName: TEAM_ICONS[Math.floor(Math.random() * TEAM_ICONS.length)].name,
+        playerIds: [],
+        createdAt: new Date().toISOString()
+      };
+      
+      set(ref(db, `teams/${newTeam.id}`), newTeam);
+    } catch (error) {
+      console.error('Error adding team:', error);
+    }
   };
 
   const handleUpdateTeam = (teamId, updates) => {
@@ -252,6 +257,20 @@ function App() {
     return `${(team.playerIds || []).length}/2`;
   };
 
+  const getRandomColor = () => {
+    const unusedColors = TEAM_COLORS.filter(color => 
+      !teams.some(team => team.color === color)
+    );
+    
+    if (unusedColors.length > 0) {
+      // Use an unused color if available
+      return unusedColors[Math.floor(Math.random() * unusedColors.length)];
+    } else {
+      // If all colors are used, pick a random one from the full list
+      return TEAM_COLORS[Math.floor(Math.random() * TEAM_COLORS.length)];
+    }
+  };
+
   return (
     <Router>
       <ThemeProvider theme={theme}>
@@ -260,9 +279,6 @@ function App() {
           <Sidebar
             isOpen={isSidebarOpen}
             onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-            onAddPlayer={handleAddPlayer}
-            onAddTeam={handleAddTeam}
-            teams={teams}
           />
           <Box
             component="main"
@@ -277,23 +293,32 @@ function App() {
               gap: 2
             }}
           >
-            <TeamList
-              teams={teams}
-              players={players}
-              onUpdateTeam={handleUpdateTeam}
-              onDeleteTeam={handleDeleteTeam}
-              onAssignPlayer={handleAssignPlayer}
-              onRandomizeTeams={handleRandomizeTeams}
-              onUpdatePlayer={handleUpdatePlayer}
-            />
-            <PlayerList
-              players={players}
-              teams={teams}
-              onUpdatePlayer={handleUpdatePlayer}
-              onDeletePlayer={handleDeletePlayer}
-              onMovePlayer={handleMovePlayer}
-              onAssignPlayer={handleAssignPlayer}
-            />
+            <Routes>
+              <Route path="/teams" element={
+                <TeamList
+                  teams={teams}
+                  players={players}
+                  onUpdateTeam={handleUpdateTeam}
+                  onDeleteTeam={handleDeleteTeam}
+                  onAssignPlayer={handleAssignPlayer}
+                  onRandomizeTeams={handleRandomizeTeams}
+                  onUpdatePlayer={handleUpdatePlayer}
+                  onAddTeam={handleAddTeam}
+                />
+              } />
+              <Route path="/players" element={
+                <PlayerList
+                  players={players}
+                  teams={teams}
+                  onUpdatePlayer={handleUpdatePlayer}
+                  onDeletePlayer={handleDeletePlayer}
+                  onMovePlayer={handleMovePlayer}
+                  onAssignPlayer={handleAssignPlayer}
+                  onAddPlayer={handleAddPlayer}
+                />
+              } />
+              <Route path="/" element={<Navigate to="/teams" replace />} />
+            </Routes>
           </Box>
         </Box>
       </ThemeProvider>
