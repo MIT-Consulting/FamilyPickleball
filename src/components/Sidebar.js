@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Drawer,
   IconButton,
@@ -16,7 +16,7 @@ import {
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import { predictGender } from '../utils/genderPredictor';
+import { predictGender, maleNames, femaleNames } from '../utils/genderPredictor';
 import { getSkillLevelColor, getSkillLevelText } from '../utils/skillLevels';
 
 const TEAM_NAME_SUGGESTIONS = [
@@ -55,11 +55,24 @@ const TEAM_NAME_SUGGESTIONS = [
   'Dill-ight Brigade'
 ];
 
+const FAMILY_COLORS = {
+  Miller: '#90caf9',  // Material-UI blue[200]
+  Holcomb: '#c48b9f', // Matching burgundy
+  Burton: '#81c784'   // Material-UI green[300]
+};
+
 const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam, teams }) => {
   const [playerName, setPlayerName] = useState('');
   const [skillLevel, setSkillLevel] = useState(1);
   const [isMale, setIsMale] = useState(true);
   const [teamName, setTeamName] = useState('');
+  const [family, setFamily] = useState('Miller');
+
+  // Combine male and female names for autocomplete
+  const allNames = useMemo(() => {
+    const names = new Set([...maleNames, ...femaleNames]);
+    return Array.from(names).map(name => name.charAt(0).toUpperCase() + name.slice(1));
+  }, []);
 
   const getRandomTeamName = () => {
     // Filter out existing team names
@@ -93,7 +106,7 @@ const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam, teams }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (playerName.trim() && skillLevel) {
-      onAddPlayer(playerName.trim(), skillLevel, isMale ? 'Male' : 'Female');
+      onAddPlayer(playerName.trim(), skillLevel, isMale ? 'Male' : 'Female', family);
       setPlayerName('');
       setSkillLevel(1);
       setIsMale(true);
@@ -107,6 +120,18 @@ const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam, teams }) => {
       setTeamName('');
     }
   };
+
+  // Helper function to get button styles
+  const getFamilyButtonStyle = (familyName) => ({
+    flex: 1,
+    bgcolor: family === familyName ? FAMILY_COLORS[familyName] : 'transparent',
+    '&:hover': {
+      bgcolor: family === familyName 
+        ? FAMILY_COLORS[familyName] 
+        : `${FAMILY_COLORS[familyName]}33` // 20% opacity version of the color
+    },
+    color: family === familyName ? 'black' : FAMILY_COLORS[familyName]
+  });
 
   return (
     <Drawer
@@ -183,9 +208,19 @@ const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam, teams }) => {
           onChange={(e) => setPlayerName(e.target.value)}
           margin="normal"
           variant="outlined"
-          inputProps={{ spellCheck: 'true' }}
+          inputProps={{ 
+            spellCheck: 'true',
+            list: playerName ? "player-name-suggestions" : undefined
+          }}
           sx={{ mb: 2 }}
         />
+        {playerName && (
+          <datalist id="player-name-suggestions">
+            {allNames.map((name, index) => (
+              <option key={index} value={name} />
+            ))}
+          </datalist>
+        )}
 
         <ButtonGroup 
           variant="contained" 
@@ -214,6 +249,34 @@ const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam, teams }) => {
           </Button>
         </ButtonGroup>
 
+        <ButtonGroup 
+          variant="contained" 
+          fullWidth 
+          sx={{ mb: 2 }}
+        >
+          <Button
+            onClick={() => setFamily('Miller')}
+            variant={family === 'Miller' ? "contained" : "outlined"}
+            sx={getFamilyButtonStyle('Miller')}
+          >
+            Miller
+          </Button>
+          <Button
+            onClick={() => setFamily('Holcomb')}
+            variant={family === 'Holcomb' ? "contained" : "outlined"}
+            sx={getFamilyButtonStyle('Holcomb')}
+          >
+            Holcomb
+          </Button>
+          <Button
+            onClick={() => setFamily('Burton')}
+            variant={family === 'Burton' ? "contained" : "outlined"}
+            sx={getFamilyButtonStyle('Burton')}
+          >
+            Burton
+          </Button>
+        </ButtonGroup>
+
         <FormControl fullWidth sx={{ mb: 2 }}>
           <InputLabel>Skill Level</InputLabel>
           <Select
@@ -223,13 +286,11 @@ const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam, teams }) => {
             sx={{
               '& .MuiSelect-select': {
                 paddingRight: '32px !important'
-              },
-              minWidth: '200px',
-              maxWidth: '220px'
+              }
             }}
           >
             {[1, 2, 3, 4, 5].map((level) => (
-              <MenuItem key={level} value={level} sx={{ minWidth: '200px' }}>
+              <MenuItem key={level} value={level} sx={{ minWidth: '100%' }}>
                 <Box sx={{ 
                   display: 'flex', 
                   alignItems: 'center',
@@ -238,6 +299,7 @@ const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam, teams }) => {
                   py: 0.25,
                   borderRadius: 1,
                   color: 'black',
+                  width: '100%'
                 }}>
                   Lvl {level} - {getSkillLevelText(level)}
                 </Box>

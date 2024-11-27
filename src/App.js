@@ -11,6 +11,20 @@ import './App.css';
 import { HashRouter as Router } from 'react-router-dom';
 import { ref, onValue, set, remove } from 'firebase/database';
 import { db } from './firebase-config';
+import StarIcon from '@mui/icons-material/Star';
+import BoltIcon from '@mui/icons-material/Bolt';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import WavesIcon from '@mui/icons-material/Waves';
+import AcUnitIcon from '@mui/icons-material/AcUnit';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import FlareIcon from '@mui/icons-material/Flare';
+import FilterVintageIcon from '@mui/icons-material/FilterVintage';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import CloudIcon from '@mui/icons-material/Cloud';
+import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
+import AirIcon from '@mui/icons-material/Air';
 
 const theme = createTheme({
   palette: {
@@ -41,6 +55,23 @@ const TEAM_COLORS = [
   '#FFBF00', // amber
 ];
 
+const TEAM_ICONS = [
+  { icon: StarIcon, name: 'Star' },
+  { icon: BoltIcon, name: 'Lightning' },
+  { icon: RocketLaunchIcon, name: 'Rocket' },
+  { icon: LocalFireDepartmentIcon, name: 'Fire' },
+  { icon: WavesIcon, name: 'Waves' },
+  { icon: AcUnitIcon, name: 'Snowflake' },
+  { icon: WhatshotIcon, name: 'Flame' },
+  { icon: AutoAwesomeIcon, name: 'Sparkle' },
+  { icon: FlareIcon, name: 'Flare' },
+  { icon: FilterVintageIcon, name: 'Flower' },
+  { icon: PsychologyIcon, name: 'Mind' },
+  { icon: CloudIcon, name: 'Cloud' },
+  { icon: EmojiNatureIcon, name: 'Leaf' },
+  { icon: AirIcon, name: 'Wind' }
+];
+
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [players, setPlayers] = useState([]);
@@ -66,12 +97,13 @@ function App() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
-  const handleAddPlayer = (playerName, skillLevel, gender) => {
+  const handleAddPlayer = (playerName, skillLevel, gender, family) => {
     const newPlayer = {
       id: Date.now(),
       name: playerName,
       skillLevel: skillLevel,
       gender: gender,
+      family: family,
       rank: players.length + 1
     };
     set(ref(db, `players/${newPlayer.id}`), newPlayer);
@@ -122,12 +154,46 @@ function App() {
     return TEAM_COLORS.find(color => !usedColors.has(color)) || TEAM_COLORS[0];
   };
 
+  const getNextTeamIcon = () => {
+    const usedIcons = new Set(teams.map(team => team.iconName));
+    return TEAM_ICONS.find(icon => !usedIcons.has(icon.name)) || TEAM_ICONS[0];
+  };
+
+  const handleRandomizeTeams = () => {
+    // Create arrays of unused colors and icons
+    const availableColors = [...TEAM_COLORS];
+    const availableIcons = [...TEAM_ICONS];
+
+    // Shuffle both arrays
+    for (let i = availableColors.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availableColors[i], availableColors[j]] = [availableColors[j], availableColors[i]];
+    }
+    for (let i = availableIcons.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [availableIcons[i], availableIcons[j]] = [availableIcons[j], availableIcons[i]];
+    }
+
+    // Update each team with new random color and icon
+    teams.forEach((team, index) => {
+      const color = availableColors[index % availableColors.length];
+      const icon = availableIcons[index % availableIcons.length];
+      set(ref(db, `teams/${team.id}`), {
+        ...team,
+        color,
+        iconName: icon.name
+      });
+    });
+  };
+
   const handleAddTeam = (teamName, teamColor) => {
+    const nextIcon = getNextTeamIcon();
     const newTeam = {
       id: Date.now(),
       name: teamName,
       playerIds: [],
-      color: teamColor || getNextTeamColor()
+      color: teamColor || getNextTeamColor(),
+      iconName: nextIcon.name
     };
     set(ref(db, `teams/${newTeam.id}`), newTeam);
   };
@@ -190,10 +256,10 @@ function App() {
     <Router>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Box sx={{ display: 'flex', minHeight: '100vh', overflow: 'hidden' }}>
-          <Sidebar 
+        <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+          <Sidebar
             isOpen={isSidebarOpen}
-            onToggle={toggleSidebar}
+            onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
             onAddPlayer={handleAddPlayer}
             onAddTeam={handleAddTeam}
             teams={teams}
@@ -202,39 +268,32 @@ function App() {
             component="main"
             sx={{
               flexGrow: 1,
-              p: 1,
-              transition: 'all 0.2s',
-              width: '100%'
+              p: 3,
+              bgcolor: 'background.default',
+              height: '100vh',
+              overflow: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 2
             }}
           >
-            {!isSidebarOpen && (
-              <IconButton
-                color="inherit"
-                aria-label="open drawer"
-                onClick={toggleSidebar}
-                edge="start"
-                sx={{ mb: 1 }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
-            <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
-              <TeamList
-                teams={teams}
-                players={players}
-                onUpdateTeam={handleUpdateTeam}
-                onDeleteTeam={handleDeleteTeam}
-                onAssignPlayer={handleAssignPlayer}
-              />
-              <PlayerList
-                players={players}
-                teams={teams}
-                onUpdatePlayer={handleUpdatePlayer}
-                onDeletePlayer={handleDeletePlayer}
-                onMovePlayer={handleMovePlayer}
-                onAssignPlayer={handleAssignPlayer}
-              />
-            </Box>
+            <TeamList
+              teams={teams}
+              players={players}
+              onUpdateTeam={handleUpdateTeam}
+              onDeleteTeam={handleDeleteTeam}
+              onAssignPlayer={handleAssignPlayer}
+              onRandomizeTeams={handleRandomizeTeams}
+              onUpdatePlayer={handleUpdatePlayer}
+            />
+            <PlayerList
+              players={players}
+              teams={teams}
+              onUpdatePlayer={handleUpdatePlayer}
+              onDeletePlayer={handleDeletePlayer}
+              onMovePlayer={handleMovePlayer}
+              onAssignPlayer={handleAssignPlayer}
+            />
           </Box>
         </Box>
       </ThemeProvider>

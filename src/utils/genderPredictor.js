@@ -1,5 +1,5 @@
 // Common male and female first names
-const maleNames = new Set([
+export const maleNames = new Set([
   'james', 'john', 'robert', 'michael', 'william', 'david', 'richard', 'joseph', 'thomas', 'charles',
   'christopher', 'daniel', 'matthew', 'anthony', 'donald', 'mark', 'paul', 'steven', 'andrew', 'kenneth',
   'george', 'joshua', 'kevin', 'brian', 'edward', 'ronald', 'timothy', 'jason', 'jeffrey', 'ryan',
@@ -10,7 +10,7 @@ const maleNames = new Set([
   'jeff', 'braydon', 'bray', 'luke', 'uncle wayne', 'uncle mark', 'uncle david', 'uncle jonathan'
 ]);
 
-const femaleNames = new Set([
+export const femaleNames = new Set([
   'mary', 'patricia', 'jennifer', 'linda', 'elizabeth', 'barbara', 'susan', 'jessica', 'sarah', 'karen',
   'nancy', 'margaret', 'lisa', 'betty', 'dorothy', 'sandra', 'ashley', 'kimberly', 'donna', 'emily',
   'michelle', 'carol', 'amanda', 'melissa', 'deborah', 'stephanie', 'rebecca', 'laura', 'sharon', 'cynthia',

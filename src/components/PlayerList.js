@@ -7,6 +7,7 @@ import {
   TextField,
   Select,
   MenuItem,
+  Autocomplete,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -15,50 +16,76 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import StarIcon from '@mui/icons-material/Star';
-import DiamondIcon from '@mui/icons-material/Diamond';
+import ShieldIcon from '@mui/icons-material/Shield';
+import CastleIcon from '@mui/icons-material/Castle';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import BoltIcon from '@mui/icons-material/Bolt';
-import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
-import PsychologyIcon from '@mui/icons-material/Psychology';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import WavesIcon from '@mui/icons-material/Waves';
+import AcUnitIcon from '@mui/icons-material/AcUnit';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import FlareIcon from '@mui/icons-material/Flare';
-import PublicIcon from '@mui/icons-material/Public';
-import AdjustIcon from '@mui/icons-material/Adjust';
-import PolylineIcon from '@mui/icons-material/Polyline';
-import HexagonIcon from '@mui/icons-material/Hexagon';
-import ShapeLineIcon from '@mui/icons-material/ShapeLine';
-import ChangeHistoryIcon from '@mui/icons-material/ChangeHistory';
-import CrisisAlertIcon from '@mui/icons-material/CrisisAlert';
+import FilterVintageIcon from '@mui/icons-material/FilterVintage';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import CloudIcon from '@mui/icons-material/Cloud';
+import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
+import AirIcon from '@mui/icons-material/Air';
+import ClearIcon from '@mui/icons-material/Clear';
+import SortIcon from '@mui/icons-material/Sort';
+import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import { getSkillLevelColor, getSkillLevelText, getSkillLevelFullText } from '../utils/skillLevels';
+import { maleNames, femaleNames } from '../utils/genderPredictor';
 
 const TEAM_ICONS = [
   { icon: StarIcon, name: 'Star' },
-  { icon: DiamondIcon, name: 'Diamond' },
   { icon: BoltIcon, name: 'Lightning' },
-  { icon: LocalFireDepartmentIcon, name: 'Fire' },
-  { icon: PsychologyIcon, name: 'Brain' },
-  { icon: AutoAwesomeIcon, name: 'Sparkle' },
   { icon: RocketLaunchIcon, name: 'Rocket' },
+  { icon: LocalFireDepartmentIcon, name: 'Fire' },
+  { icon: WavesIcon, name: 'Waves' },
+  { icon: AcUnitIcon, name: 'Snowflake' },
+  { icon: WhatshotIcon, name: 'Flame' },
+  { icon: AutoAwesomeIcon, name: 'Sparkle' },
   { icon: FlareIcon, name: 'Flare' },
-  { icon: PublicIcon, name: 'Globe' },
-  { icon: AdjustIcon, name: 'Circle' },
-  { icon: PolylineIcon, name: 'Lines' },
-  { icon: HexagonIcon, name: 'Hexagon' },
-  { icon: ShapeLineIcon, name: 'Shape' },
-  { icon: ChangeHistoryIcon, name: 'Triangle' },
-  { icon: CrisisAlertIcon, name: 'Alert' }
+  { icon: FilterVintageIcon, name: 'Flower' },
+  { icon: PsychologyIcon, name: 'Mind' },
+  { icon: CloudIcon, name: 'Cloud' },
+  { icon: EmojiNatureIcon, name: 'Leaf' },
+  { icon: AirIcon, name: 'Wind' }
 ];
+
+const FAMILY_ICONS = {
+  Miller: ShieldIcon,
+  Holcomb: CastleIcon,
+  Burton: AccountBalanceIcon
+};
+
+const FAMILY_COLORS = {
+  Miller: '#90caf9',  // Material-UI blue[200]
+  Holcomb: '#c48b9f', // Matching burgundy
+  Burton: '#81c784'   // Material-UI green[300]
+};
 
 const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlayer, onAssignPlayer }) => {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editSkillLevel, setEditSkillLevel] = useState('');
+  const [editFamily, setEditFamily] = useState('');
   const [editingTeam, setEditingTeam] = useState(null);
+  const [familyFilter, setFamilyFilter] = useState(null);
+  const [openSkillDropdown, setOpenSkillDropdown] = useState(false);
+  const [sortBySkill, setSortBySkill] = useState(false);
 
-  const handleEdit = (player) => {
+  const handleEdit = (player, fromSkillLevel = false) => {
     setEditingId(player.id);
     setEditName(player.name);
     setEditSkillLevel(player.skillLevel);
+    setEditFamily(player.family || 'Miller');
+    if (fromSkillLevel) {
+      // Set timeout to allow the Select to mount before opening
+      setTimeout(() => setOpenSkillDropdown(true), 100);
+    }
   };
 
   const handleSave = (playerId) => {
@@ -66,13 +93,16 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
       onUpdatePlayer(playerId, {
         name: editName.trim(),
         skillLevel: editSkillLevel,
+        family: editFamily,
       });
       setEditingId(null);
+      setOpenSkillDropdown(false);
     }
   };
 
   const handleCancel = () => {
     setEditingId(null);
+    setOpenSkillDropdown(false);
   };
 
   const getTeamName = (teamId) => {
@@ -135,10 +165,39 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
 
   const getTeamIcon = (team) => {
     if (!team) return null;
-    const iconIndex = team.id % TEAM_ICONS.length;
-    const IconComponent = TEAM_ICONS[iconIndex].icon;
+    const iconConfig = TEAM_ICONS.find(icon => icon.name === team.iconName) || TEAM_ICONS[0];
+    const IconComponent = iconConfig.icon;
     return <IconComponent sx={{ color: team.color, mr: 1 }} />;
   };
+
+  // Combine male and female names for autocomplete
+  const allNames = useMemo(() => {
+    const names = new Set([...maleNames, ...femaleNames]);
+    return Array.from(names).map(name => name.charAt(0).toUpperCase() + name.slice(1));
+  }, []);
+
+  // Filter players based on selected family
+  const filteredPlayers = useMemo(() => {
+    if (!familyFilter) return players;
+    return players.filter(player => player.family === familyFilter);
+  }, [players, familyFilter]);
+
+  const handleKeyPress = (event, playerId) => {
+    if (event.key === 'Enter') {
+      handleSave(playerId);
+    }
+  };
+
+  // Sort players based on current sort mode
+  const sortedPlayers = useMemo(() => {
+    const filtered = familyFilter ? players.filter(player => player.family === familyFilter) : players;
+    return [...filtered].sort((a, b) => {
+      if (sortBySkill) {
+        return b.skillLevel - a.skillLevel || a.rank - b.rank; // Secondary sort by rank
+      }
+      return a.rank - b.rank;
+    });
+  }, [players, familyFilter, sortBySkill]);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -154,11 +213,71 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
             fontSize: '0.9rem'
           }}
         >
-          {players.length}
+          {sortedPlayers.length}
+          {familyFilter && ` / ${players.length}`}
         </Typography>
+
+        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Sort toggle button */}
+          <IconButton
+            onClick={() => setSortBySkill(!sortBySkill)}
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.7)',
+              bgcolor: sortBySkill ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+              '&:hover': {
+                bgcolor: 'rgba(255, 255, 255, 0.2)'
+              }
+            }}
+            size="small"
+            title={`Sort by ${sortBySkill ? 'rank' : 'skill level'}`}
+          >
+            {sortBySkill ? (
+              <SortIcon />
+            ) : (
+              <FormatListNumberedIcon />
+            )}
+          </IconButton>
+
+          {/* Family filter buttons */}
+          {Object.entries(FAMILY_ICONS).map(([family, Icon]) => (
+            <IconButton
+              key={family}
+              onClick={() => setFamilyFilter(family === familyFilter ? null : family)}
+              sx={{ 
+                color: FAMILY_COLORS[family],
+                opacity: familyFilter === family ? 1 : 0.5,
+                bgcolor: familyFilter === family ? `${FAMILY_COLORS[family]}1A` : 'transparent', // 10% opacity
+                '&:hover': {
+                  bgcolor: `${FAMILY_COLORS[family]}33`, // 20% opacity
+                  opacity: 0.8
+                }
+              }}
+              size="small"
+              title={`Show ${family} family${familyFilter === family ? ' (active)' : ''}`}
+            >
+              <Icon />
+            </IconButton>
+          ))}
+          {familyFilter && (
+            <IconButton
+              onClick={() => setFamilyFilter(null)}
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.7)',
+                '&:hover': {
+                  bgcolor: 'rgba(255, 255, 255, 0.1)'
+                }
+              }}
+              size="small"
+              title="Clear filter"
+            >
+              <ClearIcon />
+            </IconButton>
+          )}
+        </Box>
       </Box>
+
       <div className="player-list">
-        {[...players].sort((a, b) => a.rank - b.rank).map((player) => (
+        {sortedPlayers.map((player) => (
           <Paper
             key={player.id}
             sx={{
@@ -232,23 +351,88 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 borderRadius: 1,
                 fontSize: '0.75rem',
-                color: 'rgba(255, 255, 255, 0.7)'
+                color: 'rgba(255, 255, 255, 0.7)',
+                mr: 1
               }}>
                 #{player.rank}
               </Box>
 
               {editingId === player.id ? (
                 <>
-                  <TextField
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    width: 24,
+                    height: 24,
+                    justifyContent: 'center',
+                    mr: 1
+                  }}>
+                    {player.family && FAMILY_ICONS[player.family] && React.createElement(FAMILY_ICONS[player.family], {
+                      sx: { 
+                        color: FAMILY_COLORS[player.family],
+                        fontSize: '1.2rem'
+                      }
+                    })}
+                  </Box>
+
+                  <Autocomplete
+                    freeSolo
                     value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
+                    onChange={(event, newValue) => setEditName(newValue || '')}
+                    onInputChange={(event, newValue) => setEditName(newValue)}
+                    options={allNames}
                     size="small"
-                    sx={{ ml: 1, width: nameWidth }}
+                    sx={{ width: nameWidth + 40 }}
+                    open={false}
+                    onKeyPress={(e) => handleKeyPress(e, player.id)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        autoFocus
+                      />
+                    )}
                   />
+
+                  <Select
+                    value={editFamily}
+                    onChange={(e) => setEditFamily(e.target.value)}
+                    size="small"
+                    onKeyPress={(e) => handleKeyPress(e, player.id)}
+                    sx={{ 
+                      ml: 1, 
+                      minWidth: 100,
+                      '& .MuiSelect-select': {
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5
+                      }
+                    }}
+                  >
+                    {Object.entries(FAMILY_ICONS).map(([family, Icon]) => (
+                      <MenuItem 
+                        key={family} 
+                        value={family}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5
+                        }}
+                      >
+                        <Icon sx={{ color: FAMILY_COLORS[family], fontSize: '1.2rem' }} />
+                        {family}
+                      </MenuItem>
+                    ))}
+                  </Select>
+
                   <Select
                     value={editSkillLevel}
                     onChange={(e) => setEditSkillLevel(e.target.value)}
                     size="small"
+                    onKeyPress={(e) => handleKeyPress(e, player.id)}
+                    open={openSkillDropdown}
+                    onOpen={() => setOpenSkillDropdown(true)}
+                    onClose={() => setOpenSkillDropdown(false)}
                     sx={{ ml: 1, minWidth: 120 }}
                   >
                     {[1, 2, 3, 4, 5].map((level) => (
@@ -267,17 +451,101 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                       </MenuItem>
                     ))}
                   </Select>
-                  <IconButton onClick={() => handleSave(player.id)} color="primary" size="small">
-                    <SaveIcon fontSize="small" />
-                  </IconButton>
-                  <IconButton onClick={handleCancel} color="secondary" size="small">
-                    <CancelIcon fontSize="small" />
-                  </IconButton>
+
+                  {editingTeam === player.id ? (
+                    <Select
+                      id={`team-select-${player.id}`}
+                      value=""
+                      size="small"
+                      sx={{ 
+                        ml: 1, 
+                        minWidth: 120,
+                        '.MuiOutlinedInput-input': {
+                          py: 0.5
+                        }
+                      }}
+                      onChange={(e) => handleTeamChange(player.id, e.target.value)}
+                      onClose={() => setEditingTeam(null)}
+                      autoFocus
+                    >
+                      <MenuItem value="">
+                        <em>No Team</em>
+                      </MenuItem>
+                      {availableTeams.map(team => (
+                        <MenuItem key={team.id} value={team.id} sx={{ display: 'flex', alignItems: 'center' }}>
+                          {getTeamIcon(team)}
+                          {team.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Box 
+                      onClick={(e) => handleAddToTeamClick(player.id, e)}
+                      sx={{ 
+                        ml: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        minWidth: 120,
+                        p: 0.5,
+                        borderRadius: 1,
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.08)'
+                        }
+                      }}
+                    >
+                      {player.teamId ? (
+                        <>
+                          {getTeamIcon(teams.find(t => t.id === player.teamId))}
+                          <Typography>{getTeamName(player.teamId).name}</Typography>
+                        </>
+                      ) : (
+                        <Typography sx={{ color: 'text.secondary' }}>Add to Team</Typography>
+                      )}
+                    </Box>
+                  )}
+
+                  <Box className="action-buttons" sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <IconButton onClick={() => handleSave(player.id)} color="primary" size="small">
+                      <SaveIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton onClick={handleCancel} color="secondary" size="small">
+                      <CancelIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </>
               ) : (
                 <>
-                  <Box sx={{ ml: 1, width: nameWidth }}>{player.name}</Box>
-                  <Box sx={{ ml: 1, display: 'flex', alignItems: 'center' }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center',
+                    width: 24,
+                    height: 24,
+                    justifyContent: 'center',
+                    mr: 1
+                  }}>
+                    {player.family && FAMILY_ICONS[player.family] && React.createElement(FAMILY_ICONS[player.family], {
+                      sx: { 
+                        color: FAMILY_COLORS[player.family],
+                        fontSize: '1.2rem'
+                      }
+                    })}
+                  </Box>
+
+                  <Box sx={{ width: nameWidth }}>{player.name}</Box>
+
+                  <Box 
+                    sx={{ 
+                      ml: 1, 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        opacity: 0.8
+                      }
+                    }}
+                    onDoubleClick={() => handleEdit(player, true)}
+                  >
                     <Typography
                       sx={{
                         px: 1,
@@ -292,74 +560,74 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                       Lvl {player.skillLevel}
                     </Typography>
                   </Box>
+
+                  {editingTeam === player.id ? (
+                    <Select
+                      id={`team-select-${player.id}`}
+                      value=""
+                      size="small"
+                      sx={{ 
+                        ml: 1, 
+                        minWidth: 120,
+                        '.MuiOutlinedInput-input': {
+                          py: 0.5
+                        }
+                      }}
+                      onChange={(e) => handleTeamChange(player.id, e.target.value)}
+                      onClose={() => setEditingTeam(null)}
+                      autoFocus
+                    >
+                      <MenuItem value="">
+                        <em>No Team</em>
+                      </MenuItem>
+                      {availableTeams.map(team => (
+                        <MenuItem key={team.id} value={team.id} sx={{ display: 'flex', alignItems: 'center' }}>
+                          {getTeamIcon(team)}
+                          {team.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  ) : (
+                    <Box 
+                      onClick={(e) => handleAddToTeamClick(player.id, e)}
+                      sx={{ 
+                        ml: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                        minWidth: 120,
+                        p: 0.5,
+                        borderRadius: 1,
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.08)'
+                        }
+                      }}
+                    >
+                      {player.teamId ? (
+                        <>
+                          {getTeamIcon(teams.find(t => t.id === player.teamId))}
+                          <Typography>{getTeamName(player.teamId).name}</Typography>
+                        </>
+                      ) : (
+                        <Typography sx={{ color: 'text.secondary' }}>Add to Team</Typography>
+                      )}
+                    </Box>
+                  )}
+
+                  <Box className="action-buttons" sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <IconButton onClick={() => handleEdit(player)} size="small">
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                    <IconButton
+                      onClick={() => onDeletePlayer(player.id)}
+                      color="error"
+                      size="small"
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
                 </>
               )}
-
-              {editingTeam === player.id ? (
-                <Select
-                  id={`team-select-${player.id}`}
-                  value=""
-                  size="small"
-                  sx={{ 
-                    ml: 1, 
-                    minWidth: 120,
-                    '.MuiOutlinedInput-input': {
-                      py: 0.5
-                    }
-                  }}
-                  onChange={(e) => handleTeamChange(player.id, e.target.value)}
-                  onClose={() => setEditingTeam(null)}
-                  autoFocus
-                >
-                  <MenuItem value="">
-                    <em>No Team</em>
-                  </MenuItem>
-                  {availableTeams.map(team => (
-                    <MenuItem key={team.id} value={team.id} sx={{ display: 'flex', alignItems: 'center' }}>
-                      {getTeamIcon(team)}
-                      {team.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              ) : (
-                <Box 
-                  onClick={(e) => handleAddToTeamClick(player.id, e)}
-                  sx={{ 
-                    ml: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    minWidth: 120,
-                    p: 0.5,
-                    borderRadius: 1,
-                    '&:hover': {
-                      backgroundColor: 'rgba(255, 255, 255, 0.08)'
-                    }
-                  }}
-                >
-                  {player.teamId ? (
-                    <>
-                      {getTeamIcon(teams.find(t => t.id === player.teamId))}
-                      <Typography>{getTeamName(player.teamId).name}</Typography>
-                    </>
-                  ) : (
-                    <Typography sx={{ color: 'text.secondary' }}>Add to Team</Typography>
-                  )}
-                </Box>
-              )}
-
-              <Box className="action-buttons" sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                <IconButton onClick={() => handleEdit(player)} size="small">
-                  <EditIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  onClick={() => onDeletePlayer(player.id)}
-                  color="error"
-                  size="small"
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Box>
             </Box>
           </Paper>
         ))}
