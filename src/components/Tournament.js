@@ -278,7 +278,8 @@ const Match = ({ match, onWinnerSelect, players }) => {
       <Card 
         id={match.id}
         sx={{ 
-          width: '300px',
+          width: '100%',
+          maxWidth: '400px',
           bgcolor: 'background.paper',
           '&:hover': {
             boxShadow: 3
@@ -537,82 +538,150 @@ function Tournament() {
       )}
 
       {bracket && bracket.winnersRounds && bracket.losersRounds && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {/* Winners Bracket */}
-          <Box>
-            <Typography variant="h5" sx={{ mb: 2 }}>Winners Bracket</Typography>
-            <Box sx={{ 
-              display: 'flex', 
-              gap: 8,
-              overflowX: 'auto', 
-              pb: 2
-            }}>
-              {(bracket.winnersRounds || []).map((round, roundIndex) => (
-                <Box key={`winners-${roundIndex}`} sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <Typography variant="h6" sx={{ textAlign: 'center', mb: 2 }}>
-                    Round {roundIndex + 1}
-                  </Typography>
-                  {(round.matches || []).map((match, matchIndex) => (
-                    <Match
-                      key={match.id}
-                      match={match}
-                      players={players}
-                      onWinnerSelect={(winner) => handleWinnerSelect('winners', roundIndex, matchIndex, winner)}
-                    />
-                  ))}
-                </Box>
-              ))}
-            </Box>
-          </Box>
+        <Box sx={{ 
+          display: 'flex',
+          justifyContent: 'center',
+          width: '100%',
+          overflowX: 'auto'
+        }}>
+          <Box sx={{ 
+            display: 'grid',
+            gridTemplateColumns: 'repeat(10, minmax(300px, 1fr))',
+            gridTemplateRows: 'auto repeat(4, 1fr)',
+            columnGap: '24px',
+            rowGap: '32px',
+            width: '100%',
+            maxWidth: '100%'
+          }}>
+            {/* Headers Row */}
+            {['Round 1', 'Round 2', 'Round 3', 'Round 4', 'Finals', 'Round 5', 'Round 4', 'Round 3', 'Round 2', 'Round 1'].map((title, index) => (
+              <Typography 
+                key={title + index}
+                variant={title === 'Finals' ? 'h5' : 'h6'} 
+                sx={{ 
+                  gridRow: 1,
+                  gridColumn: index + 1,
+                  textAlign: 'center',
+                  mb: 2
+                }}
+              >
+                {title}
+              </Typography>
+            ))}
 
-          {/* Finals */}
-          {bracket.finals?.match && (
-            <Box sx={{ alignSelf: 'center' }}>
-              <Typography variant="h5" sx={{ textAlign: 'center', mb: 2 }}>Finals</Typography>
+            {/* Winners Bracket Games */}
+            {bracket.winnersRounds[0].matches.map((match, index) => (
+              <Box sx={{ gridColumn: 1, gridRow: index + 2 }}>
+                <Match
+                  key={match.id}
+                  match={match}
+                  players={players}
+                  onWinnerSelect={(winner) => handleWinnerSelect('winners', 0, index, winner)}
+                />
+              </Box>
+            ))}
+
+            {bracket.winnersRounds[1].matches.map((match, index) => (
+              <Box sx={{ gridColumn: 2, gridRow: index + 2 }}>
+                <Match
+                  key={match.id}
+                  match={match}
+                  players={players}
+                  onWinnerSelect={(winner) => handleWinnerSelect('winners', 1, index, winner)}
+                />
+              </Box>
+            ))}
+
+            {bracket.winnersRounds[2].matches.map((match, index) => (
+              <Box sx={{ 
+                gridColumn: 3, 
+                // W9 stays in row 2, W10 aligns with row 3 (same as W6)
+                gridRow: index === 0 ? 2 : 3
+              }}>
+                <Match
+                  key={match.id}
+                  match={match}
+                  players={players}
+                  onWinnerSelect={(winner) => handleWinnerSelect('winners', 2, index, winner)}
+                />
+              </Box>
+            ))}
+
+            {/* W11 */}
+            <Box sx={{ gridColumn: 4, gridRow: 2 }}>
               <Match
-                match={bracket.finals.match}
+                match={bracket.winnersRounds[3].matches[0]}
                 players={players}
-                onWinnerSelect={(winner) => handleWinnerSelect('finals', 0, 0, winner)}
+                onWinnerSelect={(winner) => handleWinnerSelect('winners', 3, 0, winner)}
               />
-              {bracket.finals.trueFinals && (
-                <Box sx={{ mt: 4 }}>
-                  <Typography variant="h6" sx={{ textAlign: 'center', mb: 2 }}>True Finals</Typography>
-                  <Match
-                    match={bracket.finals.trueFinals}
-                    players={players}
-                    onWinnerSelect={(winner) => handleWinnerSelect('trueFinals', 0, 0, winner)}
-                  />
-                </Box>
+            </Box>
+
+            {/* Finals */}
+            <Box sx={{ gridColumn: 5, gridRow: 2 }}>
+              {bracket.finals?.match && (
+                <Match
+                  match={bracket.finals.match}
+                  players={players}
+                  onWinnerSelect={(winner) => handleWinnerSelect('finals', 0, 0, winner)}
+                />
               )}
             </Box>
-          )}
 
-          {/* Losers Bracket */}
-          <Box>
-            <Typography variant="h5" sx={{ mb: 2 }}>Losers Bracket</Typography>
-            <Box sx={{ 
-              display: 'flex', 
-              gap: 8,
-              overflowX: 'auto', 
-              pb: 2,
-              flexDirection: 'row-reverse'
-            }}>
-              {(bracket.losersRounds || []).map((round, roundIndex) => (
-                <Box key={`losers-${roundIndex}`} sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <Typography variant="h6" sx={{ textAlign: 'center', mb: 2 }}>
-                    Round {roundIndex + 1}
-                  </Typography>
-                  {(round.matches || []).map((match, matchIndex) => (
-                    <Match
-                      key={match.id}
-                      match={match}
-                      players={players}
-                      onWinnerSelect={(winner) => handleWinnerSelect('losers', roundIndex, matchIndex, winner)}
-                    />
-                  ))}
-                </Box>
-              ))}
+            {/* L10 */}
+            <Box sx={{ gridColumn: 6, gridRow: 2 }}>
+              <Match
+                match={bracket.losersRounds[4].matches[0]}
+                players={players}
+                onWinnerSelect={(winner) => handleWinnerSelect('losers', 4, 0, winner)}
+              />
             </Box>
+
+            {/* L9 */}
+            <Box sx={{ gridColumn: 7, gridRow: 2 }}>
+              <Match
+                match={bracket.losersRounds[3].matches[0]}
+                players={players}
+                onWinnerSelect={(winner) => handleWinnerSelect('losers', 3, 0, winner)}
+              />
+            </Box>
+
+            {/* Losers Bracket Games */}
+            {bracket.losersRounds[2].matches.map((match, index) => (
+              <Box sx={{ 
+                gridColumn: 8, 
+                // L7 in row 2, L8 in row 3 (under L7)
+                gridRow: index === 0 ? 2 : 3
+              }}>
+                <Match
+                  key={match.id}
+                  match={match}
+                  players={players}
+                  onWinnerSelect={(winner) => handleWinnerSelect('losers', 2, index, winner)}
+                />
+              </Box>
+            ))}
+
+            {bracket.losersRounds[1].matches.map((match, index) => (
+              <Box sx={{ gridColumn: 9, gridRow: index + 2 }}>
+                <Match
+                  key={match.id}
+                  match={match}
+                  players={players}
+                  onWinnerSelect={(winner) => handleWinnerSelect('losers', 1, index, winner)}
+                />
+              </Box>
+            ))}
+
+            {bracket.losersRounds[0].matches.map((match, index) => (
+              <Box sx={{ gridColumn: 10, gridRow: index + 2 }}>
+                <Match
+                  key={match.id}
+                  match={match}
+                  players={players}
+                  onWinnerSelect={(winner) => handleWinnerSelect('losers', 0, index, winner)}
+                />
+              </Box>
+            ))}
           </Box>
         </Box>
       )}
