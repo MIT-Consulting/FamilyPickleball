@@ -14,6 +14,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import GroupsIcon from '@mui/icons-material/Groups';  // For Teams
 import PeopleIcon from '@mui/icons-material/People';  // For Players
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';  // For Tournament
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const MENU_ITEMS = [
@@ -26,6 +27,11 @@ const MENU_ITEMS = [
     label: 'Players',
     icon: PeopleIcon,
     path: '/players'
+  },
+  {
+    label: 'Tournament',
+    icon: EmojiEventsIcon,
+    path: '/tournament'
   }
 ];
 

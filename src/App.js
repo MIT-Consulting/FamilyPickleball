@@ -25,6 +25,7 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import CloudIcon from '@mui/icons-material/Cloud';
 import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
 import AirIcon from '@mui/icons-material/Air';
+import Tournament from './components/Tournament';
 
 const theme = createTheme({
   palette: {
@@ -317,6 +318,7 @@ function App() {
                   onAddPlayer={handleAddPlayer}
                 />
               } />
+              <Route path="/tournament" element={<Tournament />} />
               <Route path="/" element={<Navigate to="/teams" replace />} />
             </Routes>
           </Box>
