@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   Box, 
   Typography, 
@@ -7,10 +7,14 @@ import {
   CardContent,
   IconButton,
   Tooltip,
-  Stack
+  Stack,
+  useTheme
 } from '@mui/material';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
+import { ColorModeContext } from '../App';
 import { ref, set, get } from 'firebase/database';
 import { db } from '../firebase-config';
 import * as Icons from '@mui/icons-material';
@@ -18,6 +22,7 @@ import ShieldIcon from '@mui/icons-material/Shield';
 import CastleIcon from '@mui/icons-material/Castle';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import StarIcon from '@mui/icons-material/Star';
+import { keyframes } from '@mui/system';
 
 // Initial bracket structure for 12 teams
 const createInitialBracket = (teams, players) => {
@@ -170,7 +175,7 @@ const FAMILY_COLORS = {
   Burton: '#81c784'
 };
 
-const Match = ({ match, onWinnerSelect, players }) => {
+const Match = ({ match, onWinnerSelect, players, isFinals, handleTeamContextMenu }) => {
   const getTeamIcon = (team) => {
     if (!team) return null;
     const IconComponent = Icons[team.iconName] || Icons.EmojiEvents;
@@ -194,37 +199,65 @@ const Match = ({ match, onWinnerSelect, players }) => {
     return new Set(families);
   };
 
-  const TeamDisplay = ({ team, isWinner }) => {
+  const TeamDisplay = ({ team, isWinner, isFinals, matchId }) => {
     if (!team) return (
       <Box sx={{ p: 1, opacity: 0.5 }}>
-        <Typography>TBD</Typography>
+        <Typography color="text.secondary">TBD</Typography>
       </Box>
     );
 
     const totalSkill = calculateTeamSkill(team);
-    const families = getTeamFamilies(team);
+    
+    // Get players with their families
+    const teamPlayers = team.playerIds?.map(playerId => {
+      const player = players.find(p => p.id === playerId);
+      return {
+        name: player?.name,
+        family: player?.family
+      };
+    }).filter(Boolean) || [];
+
+    // Add color scale function
+    const getSkillColor = (skill) => {
+      if (skill <= 4) return theme => theme.palette.mode === 'dark' ? '#ffeb3b' : '#b2a429';
+      if (skill <= 6) return theme => theme.palette.mode === 'dark' ? '#ffc107' : '#b28704';
+      if (skill <= 8) return theme => theme.palette.mode === 'dark' ? '#ff9800' : '#b36a00';
+      return theme => theme.palette.mode === 'dark' ? '#f44336' : '#aa2e25';
+    };
 
     return (
       <Box
         onClick={() => onWinnerSelect?.(team)}
+        onContextMenu={(e) => handleTeamContextMenu?.(e, team.id, matchId)}
         sx={{
           p: 1,
           cursor: 'pointer',
           borderRadius: 1,
-          bgcolor: isWinner ? 'rgba(144, 202, 249, 0.16)' : 'transparent',
-          '&:hover': { bgcolor: 'action.hover' },
-          transition: 'background-color 0.2s',
+          bgcolor: theme => theme.palette.mode === 'dark' ? '#2d2d2d' : '#f5f5f5',
+          '&:hover': { 
+            bgcolor: theme => theme.palette.mode === 'dark' ? '#383838' : '#e8e8e8'
+          },
+          transition: 'all 0.2s',
           borderLeft: `4px solid ${team.color || '#666'}`,
-          backgroundColor: isWinner ? 'rgba(144, 202, 249, 0.16)' : '#2d2d2d',
+          ...(isWinner && {
+            outline: theme => `2px solid ${theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.5)' : 'rgba(76, 175, 80, 0.7)'}`,
+            outlineOffset: '-2px',
+            boxShadow: theme => theme.palette.mode === 'dark' 
+              ? '0 0 8px rgba(76, 175, 80, 0.3)'
+              : '0 0 8px rgba(76, 175, 80, 0.2)',
+            '& .MuiTypography-root': {
+              color: theme => theme.palette.mode === 'dark' ? '#81c784' : '#2e7d32'
+            }
+          })
         }}
       >
-        <Stack direction="row" alignItems="center" spacing={1}>
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%' }}>
           {getTeamIcon(team)}
-          <Typography>{team.name}</Typography>
+          <Typography sx={{ flexGrow: 1, color: 'text.primary' }}>{team.name}</Typography>
           <Typography
             variant="caption"
             sx={{
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              color: getSkillColor(totalSkill),
               px: 1,
               py: 0.25,
               borderRadius: 1,
@@ -232,25 +265,45 @@ const Match = ({ match, onWinnerSelect, players }) => {
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
-              ml: 'auto'
+              ml: 'auto',
+              fontWeight: 'bold'
             }}
           >
             <StarIcon sx={{ fontSize: '0.9rem' }} />
             {totalSkill}
           </Typography>
         </Stack>
-        <Stack direction="row" spacing={0.5} mt={0.5}>
-          {Array.from(families).map(family => {
-            const Icon = FAMILY_ICONS[family];
-            return Icon ? (
-              <Icon 
-                key={family}
+        <Stack direction="row" spacing={1} mt={1} sx={{ ml: 2 }}>
+          {teamPlayers.map((player, index) => {
+            const Icon = FAMILY_ICONS[player.family];
+            return (
+              <Box 
+                key={index}
                 sx={{ 
-                  color: FAMILY_COLORS[family],
-                  fontSize: '1.2rem'
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5
                 }}
-              />
-            ) : null;
+              >
+                {Icon && (
+                  <Icon 
+                    sx={{ 
+                      color: FAMILY_COLORS[player.family],
+                      fontSize: '1rem'
+                    }}
+                  />
+                )}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  {player.name}
+                </Typography>
+              </Box>
+            );
           })}
         </Stack>
       </Box>
@@ -262,13 +315,17 @@ const Match = ({ match, onWinnerSelect, players }) => {
       display: 'flex', 
       flexDirection: 'column',
       alignItems: 'center',
-      gap: 1
+      gap: 1,
+      ...(isFinals && {
+        transform: 'scale(1.1)',
+        transformOrigin: 'center'
+      })
     }}>
       <Typography
         variant="caption"
         sx={{
-          color: 'rgba(255, 255, 255, 0.7)',
-          fontSize: '0.8rem',
+          color: 'text.secondary',
+          fontSize: isFinals ? '0.9rem' : '0.8rem',
           fontFamily: 'monospace',
           fontWeight: 'bold'
         }}
@@ -279,13 +336,13 @@ const Match = ({ match, onWinnerSelect, players }) => {
         id={match.id}
         sx={{ 
           width: '100%',
-          maxWidth: '400px',
+          maxWidth: isFinals ? 'none' : '400px',
           bgcolor: 'background.paper',
           '&:hover': {
             boxShadow: 3
           },
           transition: 'box-shadow 0.2s',
-          backgroundColor: '#2d2d2d',
+          borderColor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)'
         }}
       >
         <CardContent>
@@ -293,6 +350,8 @@ const Match = ({ match, onWinnerSelect, players }) => {
             <TeamDisplay 
               team={match.team1} 
               isWinner={match.winner?.id === match.team1?.id}
+              isFinals={isFinals}
+              matchId={match.id}
             />
             <Box sx={{ 
               height: '1px', 
@@ -302,6 +361,8 @@ const Match = ({ match, onWinnerSelect, players }) => {
             <TeamDisplay 
               team={match.team2}
               isWinner={match.winner?.id === match.team2?.id}
+              isFinals={isFinals}
+              matchId={match.id}
             />
           </Stack>
         </CardContent>
@@ -310,10 +371,155 @@ const Match = ({ match, onWinnerSelect, players }) => {
   );
 };
 
+// Add confetti animation keyframes
+const confettiAnimation = keyframes`
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+  }
+`;
+
+// Add Confetti component
+const Confetti = ({ isActive }) => {
+  // Create 50 pieces of confetti with different colors, sizes, and delays
+  const confettiPieces = Array.from({ length: 50 }).map((_, i) => {
+    const colors = ['#f00', '#0f0', '#00f', '#ff0', '#0ff', '#f0f'];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = Math.random() * 10 + 5;
+    const left = `${Math.random() * 100}%`;
+    const animationDelay = `${Math.random() * 3}s`;
+    const animationDuration = `${Math.random() * 3 + 2}s`;
+
+    return (
+      <Box
+        key={i}
+        sx={{
+          position: 'fixed',
+          width: size,
+          height: size,
+          backgroundColor: color,
+          borderRadius: '50%',
+          left,
+          top: '-20px',
+          opacity: isActive ? 1 : 0,
+          animation: `${confettiAnimation} ${animationDuration} linear ${animationDelay} infinite`,
+          transition: 'opacity 0.3s',
+          zIndex: 9999
+        }}
+      />
+    );
+  });
+
+  return (
+    <Box
+      sx={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none'
+      }}
+    >
+      {confettiPieces}
+    </Box>
+  );
+};
+
+const clearDownstreamMatches = (bracket, matchId) => {
+  // Map of which matches affect which downstream matches
+  const downstreamMap = {
+    'W1': ['W5', 'L1'],
+    'W2': ['W5', 'L1'],
+    'W3': ['W6', 'L2'],
+    'W4': ['W6', 'L2'],
+    'W5': ['W9', 'L3'],
+    'W6': ['W9', 'L3'],
+    'W7': ['W10', 'L4'],
+    'W8': ['W10', 'L4'],
+    'W9': ['W11', 'L7'],
+    'W10': ['W11', 'L8'],
+    'W11': ['F1', 'L10'],
+    'L1': ['L5'],
+    'L2': ['L5'],
+    'L3': ['L6'],
+    'L4': ['L6'],
+    'L5': ['L7'],
+    'L6': ['L8'],
+    'L7': ['L9'],
+    'L8': ['L9'],
+    'L9': ['L10'],
+    'L10': ['F1'],
+    'F1': ['F2']  // In case of true finals
+  };
+
+  const clearMatch = (matchId) => {
+    // Find and clear the match
+    let matchFound = false;
+    
+    // Check winners bracket
+    bracket.winnersRounds.forEach(round => {
+      round.matches.forEach(match => {
+        if (match.id === matchId) {
+          // Keep team1 for first round winners matches (W1-W8)
+          if (match.id.startsWith('W') && parseInt(match.id.slice(1)) <= 8) {
+            match.team2 = null;
+          } else {
+            match.team1 = null;
+            match.team2 = null;
+          }
+          match.winner = null;
+          matchFound = true;
+        }
+      });
+    });
+
+    // Check losers bracket
+    if (!matchFound) {
+      bracket.losersRounds.forEach(round => {
+        round.matches.forEach(match => {
+          if (match.id === matchId) {
+            match.team1 = null;
+            match.team2 = null;
+            match.winner = null;
+            matchFound = true;
+          }
+        });
+      });
+    }
+
+    // Check finals
+    if (!matchFound && matchId === 'F1' && bracket.finals?.match) {
+      bracket.finals.match.team2 = null;
+      bracket.finals.match.winner = null;
+      bracket.finals.trueFinals = null;
+    }
+
+    // Clear downstream matches recursively
+    const downstream = downstreamMap[matchId];
+    if (downstream) {
+      downstream.forEach(nextMatchId => clearMatch(nextMatchId));
+    }
+  };
+
+  // Get downstream matches and clear them
+  const downstream = downstreamMap[matchId];
+  if (downstream) {
+    downstream.forEach(matchId => clearMatch(matchId));
+  }
+
+  return bracket;
+};
+
 function Tournament() {
+  const theme = useTheme();
+  const colorMode = useContext(ColorModeContext);
   const [bracket, setBracket] = useState(null);
   const [teams, setTeams] = useState([]);
   const [players, setPlayers] = useState([]);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -360,6 +566,9 @@ function Tournament() {
     const initialBracket = createInitialBracket(teams, players);
     console.log('Initial bracket created:', initialBracket);
 
+    // Stop any confetti that might be playing
+    setShowConfetti(false);
+
     setBracket(initialBracket);
     set(ref(db, 'tournament'), initialBracket);
   };
@@ -372,9 +581,6 @@ function Tournament() {
     let loser;
 
     if (bracketType === 'winners') {
-      // Check if round and match exist
-      if (!newBracket.winnersRounds[roundIndex]?.matches[matchIndex]) return;
-      
       match = newBracket.winnersRounds[roundIndex].matches[matchIndex];
       match.winner = winner;
       loser = winner.id === match.team1.id ? match.team2 : match.team1;
@@ -396,24 +602,19 @@ function Tournament() {
 
       const nextMatchId = winnerProgressionMap[match.id];
       if (nextMatchId === 'F') {
-        // Winner goes to finals
         if (newBracket.finals?.match) {
           newBracket.finals.match.team1 = winner;
         }
       } else {
-        // Find the next match in any round
         const nextMatch = newBracket.winnersRounds.reduce((found, round) => {
           if (found) return found;
           return round.matches.find(m => m.id === nextMatchId);
         }, null);
 
         if (nextMatch) {
-          // For matches W5-W8, winners from W1-W4 go to team2
           if (['W5', 'W6', 'W7', 'W8'].includes(nextMatch.id)) {
             nextMatch.team2 = winner;
-          }
-          // For W9-W11, first winner goes to team1, second to team2
-          else if (!nextMatch.team1) {
+          } else if (!nextMatch.team1) {
             nextMatch.team1 = winner;
           } else {
             nextMatch.team2 = winner;
@@ -421,7 +622,7 @@ function Tournament() {
         }
       }
 
-      // Move loser to losers bracket based on the winners match ID
+      // Move loser to losers bracket
       const losersDestinationMap = {
         'W1': { id: 'L1', position: 'team2' },
         'W2': { id: 'L1', position: 'team1' },
@@ -436,10 +637,8 @@ function Tournament() {
         'W11': { id: 'L10', position: 'team2' }
       };
 
-      // Find the destination match for the loser
       const destination = losersDestinationMap[match.id];
       if (destination) {
-        // Find the correct match in the losers bracket
         const losersMatch = newBracket.losersRounds.reduce((found, round) => {
           if (found) return found;
           return round.matches.find(m => m.id === destination.id);
@@ -450,40 +649,28 @@ function Tournament() {
         }
       }
     } else if (bracketType === 'losers') {
-      // Check if round and match exist
-      if (!newBracket.losersRounds[roundIndex]?.matches[matchIndex]) return;
-      
       match = newBracket.losersRounds[roundIndex].matches[matchIndex];
       match.winner = winner;
 
-      // Update the losers progression map
       const loserProgressionMap = {
-        // L1-L4 winners go to L5-L6
         'L1': { id: 'L5', position: 'team1' },
         'L2': { id: 'L5', position: 'team2' },
         'L3': { id: 'L6', position: 'team1' },
         'L4': { id: 'L6', position: 'team2' },
-        // L5-L6 winners go to L7-L8
         'L5': { id: 'L7', position: 'team1' },
         'L6': { id: 'L8', position: 'team1' },
-        // L7-L8 winners go to L9
         'L7': { id: 'L9', position: 'team1' },
         'L8': { id: 'L9', position: 'team2' },
-        // L9 winner goes to L10
         'L9': { id: 'L10', position: 'team1' },
-        // L10 winner goes to Finals team2 position
         'L10': { id: 'F1', position: 'team2' }
       };
 
-      // Find next match using progression map
       const nextMatchId = loserProgressionMap[match.id];
       if (nextMatchId.id === 'F1') {
-        // Winner goes to finals
         if (newBracket.finals?.match) {
           newBracket.finals.match.team2 = winner;
         }
       } else {
-        // Find the next match in any round
         const nextMatch = newBracket.losersRounds.reduce((found, round) => {
           if (found) return found;
           return round.matches.find(m => m.id === nextMatchId.id);
@@ -499,6 +686,9 @@ function Tournament() {
       match = newBracket.finals.match;
       match.winner = winner;
 
+      // Trigger confetti for finals winner
+      setShowConfetti(true);
+
       // If losers bracket winner wins, create true finals
       if (winner.id === match.team2.id && !newBracket.finals.trueFinals) {
         newBracket.finals.trueFinals = {
@@ -507,24 +697,99 @@ function Tournament() {
           team2: match.team2,
           winner: null
         };
+        // Stop confetti if there will be true finals
+        setShowConfetti(false);
       }
+    } else if (bracketType === 'trueFinals') {
+      // Trigger confetti for true finals winner
+      setShowConfetti(true);
     }
 
     setBracket(newBracket);
     set(ref(db, 'tournament'), newBracket);
   };
 
+  const handleTeamContextMenu = (e, teamId, matchId) => {
+    e.preventDefault(); // Prevent default right-click menu
+    
+    if (!bracket) return;
+    
+    const newBracket = { ...bracket };
+    
+    // Function to find and clear team from a specific match
+    const clearTeamFromMatch = (match) => {
+      if (match.id === matchId) {
+        if (match.team1?.id === teamId) {
+          match.team1 = null;
+          match.winner = null;
+          return true;
+        }
+        if (match.team2?.id === teamId) {
+          match.team2 = null;
+          match.winner = null;
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // Search through all matches for the specific matchId
+    let found = false;
+    
+    // Check winners bracket
+    newBracket.winnersRounds.forEach(round => {
+      round.matches.forEach(match => {
+        if (clearTeamFromMatch(match)) {
+          found = true;
+        }
+      });
+    });
+
+    // Check losers bracket
+    if (!found) {
+      newBracket.losersRounds.forEach(round => {
+        round.matches.forEach(match => {
+          if (clearTeamFromMatch(match)) {
+            found = true;
+          }
+        });
+      });
+    }
+
+    // Check finals
+    if (!found && newBracket.finals?.match) {
+      if (clearTeamFromMatch(newBracket.finals.match)) {
+        found = true;
+      }
+    }
+
+    if (found) {
+      setBracket(newBracket);
+      set(ref(db, 'tournament'), newBracket);
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
+      {/* Add Confetti component */}
+      <Confetti isActive={showConfetti} />
+      
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <EmojiEventsIcon /> Tournament Bracket
         </Typography>
-        <Tooltip title="Initialize New Tournament">
-          <IconButton onClick={initializeBracket} color="primary">
-            <RefreshIcon />
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Tooltip title="Toggle Dark/Light Mode">
+            <IconButton onClick={colorMode.toggleColorMode} color="inherit">
+              {theme.palette.mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Initialize New Tournament">
+            <IconButton onClick={initializeBracket} color="primary">
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       {!bracket && (
@@ -546,7 +811,7 @@ function Tournament() {
         }}>
           <Box sx={{ 
             display: 'grid',
-            gridTemplateColumns: 'repeat(10, minmax(300px, 1fr))',
+            gridTemplateColumns: `repeat(4, minmax(300px, 1fr)) minmax(330px, 1.1fr) repeat(5, minmax(300px, 1fr))`,
             gridTemplateRows: 'auto repeat(4, 1fr)',
             columnGap: '24px',
             rowGap: '32px',
@@ -562,7 +827,11 @@ function Tournament() {
                   gridRow: 1,
                   gridColumn: index + 1,
                   textAlign: 'center',
-                  mb: 2
+                  mb: 2,
+                  ...(title === 'Finals' && {
+                    fontSize: '1.5rem',
+                    fontWeight: 'bold'
+                  })
                 }}
               >
                 {title}
@@ -576,6 +845,7 @@ function Tournament() {
                   key={match.id}
                   match={match}
                   players={players}
+                  handleTeamContextMenu={handleTeamContextMenu}
                   onWinnerSelect={(winner) => handleWinnerSelect('winners', 0, index, winner)}
                 />
               </Box>
@@ -587,6 +857,7 @@ function Tournament() {
                   key={match.id}
                   match={match}
                   players={players}
+                  handleTeamContextMenu={handleTeamContextMenu}
                   onWinnerSelect={(winner) => handleWinnerSelect('winners', 1, index, winner)}
                 />
               </Box>
@@ -602,6 +873,7 @@ function Tournament() {
                   key={match.id}
                   match={match}
                   players={players}
+                  handleTeamContextMenu={handleTeamContextMenu}
                   onWinnerSelect={(winner) => handleWinnerSelect('winners', 2, index, winner)}
                 />
               </Box>
@@ -612,19 +884,98 @@ function Tournament() {
               <Match
                 match={bracket.winnersRounds[3].matches[0]}
                 players={players}
+                handleTeamContextMenu={handleTeamContextMenu}
                 onWinnerSelect={(winner) => handleWinnerSelect('winners', 3, 0, winner)}
               />
             </Box>
 
             {/* Finals */}
-            <Box sx={{ gridColumn: 5, gridRow: 2 }}>
-              {bracket.finals?.match && (
-                <Match
-                  match={bracket.finals.match}
-                  players={players}
-                  onWinnerSelect={(winner) => handleWinnerSelect('finals', 0, 0, winner)}
-                />
-              )}
+            <Box sx={{ 
+              gridColumn: 5, 
+              gridRow: '1 / span 5',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              height: '100%',
+              width: '100%'
+            }}>
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  position: 'absolute',
+                  top: 0,
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  mb: 2
+                }}
+              >
+                Finals
+              </Typography>
+              <Box sx={{ 
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                alignItems: 'center',
+                width: '100%'
+              }}>
+                {bracket.finals?.match && (
+                  <>
+                    <Box sx={{ width: '100%' }}>
+                      <Match
+                        match={bracket.finals.match}
+                        players={players}
+                        handleTeamContextMenu={handleTeamContextMenu}
+                        onWinnerSelect={(winner) => handleWinnerSelect('finals', 0, 0, winner)}
+                        isFinals={true}
+                      />
+                    </Box>
+                    {bracket.finals.match.winner && (
+                      <Box sx={{ width: '100%', mt: 4 }}>
+                        <Typography 
+                          variant="h5" 
+                          sx={{ 
+                            textAlign: 'center',
+                            mb: 2,
+                            color: 'gold',
+                            textTransform: 'uppercase',
+                            fontWeight: 'bold',
+                            textShadow: '0 0 10px rgba(255,215,0,0.5)'
+                          }}
+                        >
+                          Champion
+                        </Typography>
+                        <Card sx={{ 
+                          width: '100%',
+                          bgcolor: 'background.paper',
+                          backgroundColor: '#2d2d2d',
+                          border: '2px solid gold',
+                          boxShadow: '0 0 20px rgba(255,215,0,0.3)'
+                        }}>
+                          <CardContent>
+                            <Box
+                              sx={{
+                                p: 1,
+                                borderRadius: 1,
+                                borderLeft: `4px solid ${bracket.finals.match.winner.color || '#666'}`,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2
+                              }}
+                            >
+                              <EmojiEventsIcon sx={{ color: 'gold', fontSize: 32 }} />
+                              <Typography variant="h6">
+                                {bracket.finals.match.winner.name}
+                              </Typography>
+                            </Box>
+                          </CardContent>
+                        </Card>
+                      </Box>
+                    )}
+                  </>
+                )}
+              </Box>
             </Box>
 
             {/* L10 */}
@@ -632,6 +983,7 @@ function Tournament() {
               <Match
                 match={bracket.losersRounds[4].matches[0]}
                 players={players}
+                handleTeamContextMenu={handleTeamContextMenu}
                 onWinnerSelect={(winner) => handleWinnerSelect('losers', 4, 0, winner)}
               />
             </Box>
@@ -641,6 +993,7 @@ function Tournament() {
               <Match
                 match={bracket.losersRounds[3].matches[0]}
                 players={players}
+                handleTeamContextMenu={handleTeamContextMenu}
                 onWinnerSelect={(winner) => handleWinnerSelect('losers', 3, 0, winner)}
               />
             </Box>
@@ -656,6 +1009,7 @@ function Tournament() {
                   key={match.id}
                   match={match}
                   players={players}
+                  handleTeamContextMenu={handleTeamContextMenu}
                   onWinnerSelect={(winner) => handleWinnerSelect('losers', 2, index, winner)}
                 />
               </Box>
@@ -667,6 +1021,7 @@ function Tournament() {
                   key={match.id}
                   match={match}
                   players={players}
+                  handleTeamContextMenu={handleTeamContextMenu}
                   onWinnerSelect={(winner) => handleWinnerSelect('losers', 1, index, winner)}
                 />
               </Box>
@@ -678,6 +1033,7 @@ function Tournament() {
                   key={match.id}
                   match={match}
                   players={players}
+                  handleTeamContextMenu={handleTeamContextMenu}
                   onWinnerSelect={(winner) => handleWinnerSelect('losers', 0, index, winner)}
                 />
               </Box>

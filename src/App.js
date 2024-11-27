@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import MenuIcon from '@mui/icons-material/Menu';
+import Brightness4Icon from '@mui/icons-material/Brightness4';
+import Brightness7Icon from '@mui/icons-material/Brightness7';
 import Sidebar from './components/Sidebar';
 import PlayerList from './components/PlayerList';
 import TeamList from './components/TeamList';
@@ -26,18 +28,6 @@ import CloudIcon from '@mui/icons-material/Cloud';
 import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
 import AirIcon from '@mui/icons-material/Air';
 import Tournament from './components/Tournament';
-
-const theme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#90caf9',
-    },
-    secondary: {
-      main: '#f48fb1',
-    },
-  },
-});
 
 const TEAM_COLORS = [
   '#7CB9E8', // bright blue
@@ -73,10 +63,42 @@ const TEAM_ICONS = [
   { icon: AirIcon, name: 'Wind' }
 ];
 
+export const ColorModeContext = createContext({ toggleColorMode: () => {} });
+
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [players, setPlayers] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [mode, setMode] = useState('dark');
+
+  const colorMode = React.useMemo(
+    () => ({
+      toggleColorMode: () => {
+        setMode((prevMode) => (prevMode === 'light' ? 'dark' : 'light'));
+      },
+    }),
+    [],
+  );
+
+  const theme = React.useMemo(
+    () =>
+      createTheme({
+        palette: {
+          mode,
+          primary: {
+            main: mode === 'dark' ? '#90caf9' : '#1976d2',
+          },
+          secondary: {
+            main: mode === 'dark' ? '#f48fb1' : '#dc004e',
+          },
+          background: {
+            default: mode === 'dark' ? '#121212' : '#f5f5f5',
+            paper: mode === 'dark' ? '#1e1e1e' : '#ffffff',
+          },
+        },
+      }),
+    [mode],
+  );
 
   // Load data when component mounts
   useEffect(() => {
@@ -273,58 +295,60 @@ function App() {
   };
 
   return (
-    <Router>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
-          <Sidebar
-            isOpen={isSidebarOpen}
-            onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          />
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              p: 3,
-              bgcolor: 'background.default',
-              height: '100vh',
-              overflow: 'auto',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 2
-            }}
-          >
-            <Routes>
-              <Route path="/teams" element={
-                <TeamList
-                  teams={teams}
-                  players={players}
-                  onUpdateTeam={handleUpdateTeam}
-                  onDeleteTeam={handleDeleteTeam}
-                  onAssignPlayer={handleAssignPlayer}
-                  onRandomizeTeams={handleRandomizeTeams}
-                  onUpdatePlayer={handleUpdatePlayer}
-                  onAddTeam={handleAddTeam}
-                />
-              } />
-              <Route path="/players" element={
-                <PlayerList
-                  players={players}
-                  teams={teams}
-                  onUpdatePlayer={handleUpdatePlayer}
-                  onDeletePlayer={handleDeletePlayer}
-                  onMovePlayer={handleMovePlayer}
-                  onAssignPlayer={handleAssignPlayer}
-                  onAddPlayer={handleAddPlayer}
-                />
-              } />
-              <Route path="/tournament" element={<Tournament />} />
-              <Route path="/" element={<Navigate to="/teams" replace />} />
-            </Routes>
+    <ColorModeContext.Provider value={colorMode}>
+      <Router>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+            <Sidebar
+              isOpen={isSidebarOpen}
+              onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+            />
+            <Box
+              component="main"
+              sx={{
+                flexGrow: 1,
+                p: 3,
+                bgcolor: 'background.default',
+                height: '100vh',
+                overflow: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2
+              }}
+            >
+              <Routes>
+                <Route path="/teams" element={
+                  <TeamList
+                    teams={teams}
+                    players={players}
+                    onUpdateTeam={handleUpdateTeam}
+                    onDeleteTeam={handleDeleteTeam}
+                    onAssignPlayer={handleAssignPlayer}
+                    onRandomizeTeams={handleRandomizeTeams}
+                    onUpdatePlayer={handleUpdatePlayer}
+                    onAddTeam={handleAddTeam}
+                  />
+                } />
+                <Route path="/players" element={
+                  <PlayerList
+                    players={players}
+                    teams={teams}
+                    onUpdatePlayer={handleUpdatePlayer}
+                    onDeletePlayer={handleDeletePlayer}
+                    onMovePlayer={handleMovePlayer}
+                    onAssignPlayer={handleAssignPlayer}
+                    onAddPlayer={handleAddPlayer}
+                  />
+                } />
+                <Route path="/tournament" element={<Tournament />} />
+                <Route path="/" element={<Navigate to="/teams" replace />} />
+              </Routes>
+            </Box>
           </Box>
-        </Box>
-      </ThemeProvider>
-    </Router>
+        </ThemeProvider>
+      </Router>
+    </ColorModeContext.Provider>
   );
 }
 

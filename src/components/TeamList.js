@@ -49,7 +49,7 @@ import ShuffleIcon from '@mui/icons-material/Shuffle';
 import SortIcon from '@mui/icons-material/Sort';
 import { getSkillLevelColor, getSkillLevelText } from '../utils/skillLevels';
 import { db } from '../firebase-config';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
 
 const TEAM_ICONS = [
   { icon: StarIcon, name: 'Star' },
@@ -314,6 +314,19 @@ const TeamList = ({
     }
   };
 
+  const handleContextMenu = (e, teamId) => {
+    e.preventDefault(); // Prevent default right-click menu
+    
+    if (window.confirm('Are you sure you want to remove this team?')) {
+      // Remove team logic here using Firebase
+      const teamRef = doc(db, 'teams', teamId);
+      deleteDoc(teamRef)
+        .catch((error) => {
+          console.error("Error removing team: ", error);
+        });
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Box 
@@ -431,6 +444,7 @@ const TeamList = ({
                   opacity: 1
                 }
               }}
+              onContextMenu={(e) => handleContextMenu(e, team.id)}
             >
               <Box sx={{ 
                 p: 1, 
