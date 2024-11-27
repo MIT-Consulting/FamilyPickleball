@@ -122,12 +122,12 @@ function App() {
     return TEAM_COLORS.find(color => !usedColors.has(color)) || TEAM_COLORS[0];
   };
 
-  const handleAddTeam = (teamName) => {
+  const handleAddTeam = (teamName, teamColor) => {
     const newTeam = {
       id: Date.now(),
       name: teamName,
       playerIds: [],
-      color: getNextTeamColor()
+      color: teamColor || getNextTeamColor()
     };
     set(ref(db, `teams/${newTeam.id}`), newTeam);
   };
@@ -219,19 +219,19 @@ function App() {
               </IconButton>
             )}
             <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
+              <TeamList
+                teams={teams}
+                players={players}
+                onUpdateTeam={handleUpdateTeam}
+                onDeleteTeam={handleDeleteTeam}
+                onAssignPlayer={handleAssignPlayer}
+              />
               <PlayerList
                 players={players}
                 teams={teams}
                 onUpdatePlayer={handleUpdatePlayer}
                 onDeletePlayer={handleDeletePlayer}
                 onMovePlayer={handleMovePlayer}
-                onAssignPlayer={handleAssignPlayer}
-              />
-              <TeamList
-                teams={teams}
-                players={players}
-                onUpdateTeam={handleUpdateTeam}
-                onDeleteTeam={handleDeleteTeam}
                 onAssignPlayer={handleAssignPlayer}
               />
             </Box>

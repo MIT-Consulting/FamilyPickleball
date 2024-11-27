@@ -37,6 +37,7 @@ import HexagonIcon from '@mui/icons-material/Hexagon';
 import ShapeLineIcon from '@mui/icons-material/ShapeLine';
 import ChangeHistoryIcon from '@mui/icons-material/ChangeHistory';
 import CrisisAlertIcon from '@mui/icons-material/CrisisAlert';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { getSkillLevelColor } from '../utils/skillLevels';
 
 const TEAM_ICONS = [
@@ -55,6 +56,39 @@ const TEAM_ICONS = [
   { icon: ShapeLineIcon, name: 'Shape' },
   { icon: ChangeHistoryIcon, name: 'Triangle' },
   { icon: CrisisAlertIcon, name: 'Alert' }
+];
+
+const TEAM_NAME_SUGGESTIONS = [
+  'Dill-icious Dynamos',
+  'Mighty Picklers',
+  'Smash and Dash',
+  'The Pickle Paddlers',
+  'Net Ninjas',
+  'Dill Pickle Power',
+  'The Court Jesters',
+  'Rally Rascals',
+  'Paddle Pushers',
+  'The Pickleball Wizards',
+  'Holcomb Heroes',
+  'The Dilly Dallyers',
+  'Ace Avengers',
+  'The Smash Bros',
+  'Pickleball Pirates',
+  'The Net Setters',
+  'Rally Rebels',
+  'The Court Crushers',
+  'Paddle Warriors',
+  'The Pickleball Posse',
+  'Burton Ballers',
+  'The Pickleball Panthers',
+  'Dill-ightful Players',
+  'The Smash Sisters/Brothers',
+  'The Net Navigators',
+  'Rally Rockstars',
+  'The Paddle Pals',
+  'The Court Commanders',
+  'The Pickleball Phantoms',
+  'Dill-ight Brigade'
 ];
 
 const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }) => {
@@ -139,6 +173,22 @@ const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }
     return <IconComponent sx={{ color: team.color, mr: 1 }} />;
   };
 
+  const getRandomTeamName = () => {
+    // Filter out existing team names except the current editing team
+    const existingNames = new Set(teams.filter(t => t.id !== editingId).map(team => team.name));
+    const availableNames = TEAM_NAME_SUGGESTIONS.filter(name => !existingNames.has(name));
+    
+    if (availableNames.length === 0) {
+      // If all names are used, use the full list
+      const randomIndex = Math.floor(Math.random() * TEAM_NAME_SUGGESTIONS.length);
+      setEditName(TEAM_NAME_SUGGESTIONS[randomIndex]);
+    } else {
+      // Choose from available names
+      const randomIndex = Math.floor(Math.random() * availableNames.length);
+      setEditName(availableNames[randomIndex]);
+    }
+  };
+
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -214,14 +264,30 @@ const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
-                          <input
-                            type="color"
-                            value={editColor}
-                            onChange={(e) => setEditColor(e.target.value)}
-                            style={{ width: 24, height: 24, padding: 0, border: 'none' }}
-                          />
+                          <IconButton
+                            onClick={getRandomTeamName}
+                            edge="end"
+                            size="small"
+                            title="Get random team name"
+                          >
+                            <RefreshIcon />
+                          </IconButton>
                         </InputAdornment>
                       ),
+                    }}
+                  />
+                  <input
+                    type="color"
+                    value={editColor}
+                    onChange={(e) => setEditColor(e.target.value)}
+                    style={{ 
+                      width: 32, 
+                      height: 32, 
+                      padding: 0, 
+                      border: 'none',
+                      borderRadius: '4px',
+                      backgroundColor: 'transparent',
+                      cursor: 'pointer'
                     }}
                   />
                   <IconButton onClick={() => handleSave(team.id)} color="primary" size="small">

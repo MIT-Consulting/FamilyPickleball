@@ -143,7 +143,7 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
   return (
     <Box sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Typography variant="h4">Player List</Typography>
+        <Typography variant="h4">Players</Typography>
         <Typography 
           variant="caption" 
           sx={{ 
