@@ -15,6 +15,7 @@ import {
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { predictGender } from '../utils/genderPredictor';
+import { getSkillLevelColor, getSkillLevelText } from '../utils/skillLevels';
 
 const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam }) => {
   const [playerName, setPlayerName] = useState('');
@@ -90,10 +91,10 @@ const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam }) => {
           onChange={(e) => setPlayerName(e.target.value)}
           margin="normal"
           variant="outlined"
+          inputProps={{ spellCheck: 'true' }}
           sx={{ mb: 2 }}
         />
 
-        <Typography variant="body2" sx={{ mb: 1 }}>Gender</Typography>
         <ButtonGroup 
           variant="contained" 
           fullWidth 
@@ -127,12 +128,29 @@ const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam }) => {
             value={skillLevel}
             label="Skill Level"
             onChange={(e) => setSkillLevel(e.target.value)}
+            sx={{
+              '& .MuiSelect-select': {
+                paddingRight: '32px !important'
+              },
+              minWidth: '200px',
+              maxWidth: '220px'
+            }}
           >
-            <MenuItem value={1}>Beginner (1.0-2.0)</MenuItem>
-            <MenuItem value={2}>Novice (2.5-3.0)</MenuItem>
-            <MenuItem value={3}>Intermediate (3.5-4.0)</MenuItem>
-            <MenuItem value={4}>Advanced (4.5-5.0)</MenuItem>
-            <MenuItem value={5}>Expert (5.5+)</MenuItem>
+            {[1, 2, 3, 4, 5].map((level) => (
+              <MenuItem key={level} value={level} sx={{ minWidth: '200px' }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  backgroundColor: getSkillLevelColor(level),
+                  px: 1,
+                  py: 0.25,
+                  borderRadius: 1,
+                  color: 'black',
+                }}>
+                  Lvl {level} - {getSkillLevelText(level)}
+                </Box>
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 
@@ -156,6 +174,7 @@ const Sidebar = ({ isOpen, onToggle, onAddPlayer, onAddTeam }) => {
           onChange={(e) => setTeamName(e.target.value)}
           margin="normal"
           variant="outlined"
+          inputProps={{ spellCheck: 'true' }}
           sx={{ mb: 2 }}
         />
 

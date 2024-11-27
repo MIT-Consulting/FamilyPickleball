@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Typography,
   Box,
@@ -18,14 +18,62 @@ import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import CloseIcon from '@mui/icons-material/Close';
 import ColorLensIcon from '@mui/icons-material/ColorLens';
+import StarIcon from '@mui/icons-material/Star';
+import DiamondIcon from '@mui/icons-material/Diamond';
+import BoltIcon from '@mui/icons-material/Bolt';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import FlareIcon from '@mui/icons-material/Flare';
+import PublicIcon from '@mui/icons-material/Public';
+import AdjustIcon from '@mui/icons-material/Adjust';
+import PolylineIcon from '@mui/icons-material/Polyline';
+import HexagonIcon from '@mui/icons-material/Hexagon';
+import ShapeLineIcon from '@mui/icons-material/ShapeLine';
+import ChangeHistoryIcon from '@mui/icons-material/ChangeHistory';
+import CrisisAlertIcon from '@mui/icons-material/CrisisAlert';
+import { getSkillLevelColor } from '../utils/skillLevels';
+
+const TEAM_ICONS = [
+  { icon: StarIcon, name: 'Star' },
+  { icon: DiamondIcon, name: 'Diamond' },
+  { icon: BoltIcon, name: 'Lightning' },
+  { icon: LocalFireDepartmentIcon, name: 'Fire' },
+  { icon: PsychologyIcon, name: 'Brain' },
+  { icon: AutoAwesomeIcon, name: 'Sparkle' },
+  { icon: RocketLaunchIcon, name: 'Rocket' },
+  { icon: FlareIcon, name: 'Flare' },
+  { icon: PublicIcon, name: 'Globe' },
+  { icon: AdjustIcon, name: 'Circle' },
+  { icon: PolylineIcon, name: 'Lines' },
+  { icon: HexagonIcon, name: 'Hexagon' },
+  { icon: ShapeLineIcon, name: 'Shape' },
+  { icon: ChangeHistoryIcon, name: 'Triangle' },
+  { icon: CrisisAlertIcon, name: 'Alert' }
+];
 
 const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }) => {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
   const [editColor, setEditColor] = useState('');
   const [expandedTeams, setExpandedTeams] = useState({});
+
+  const isAllExpanded = useMemo(() => {
+    return teams.length > 0 && teams.every(team => expandedTeams[team.id]);
+  }, [teams, expandedTeams]);
+
+  const handleExpandCollapseAll = () => {
+    if (isAllExpanded) {
+      setExpandedTeams({});
+    } else {
+      setExpandedTeams(teams.reduce((acc, team) => ({ ...acc, [team.id]: true }), {}));
+    }
+  };
 
   const handleEdit = (team) => {
     setEditingId(team.id);
@@ -59,43 +107,68 @@ const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }
     const team = teams.find(t => t.id === teamId);
     if (team) {
       onUpdateTeam(team.id, {
-        playerIds: team.playerIds.filter(id => id !== playerId)
+        playerIds: (team.playerIds || []).filter(id => id !== playerId)
       });
     }
     // Update player's teamId to null
     onAssignPlayer(playerId, '');
   };
 
-  const getSkillLevelColor = (level) => {
-    const colors = {
-      1: '#ff5252', // Red for beginners
-      2: '#ff914d', // Orange for novice
-      3: '#ffd740', // Yellow for intermediate
-      4: '#69f0ae', // Green for advanced
-      5: '#40c4ff', // Blue for expert
-    };
-    return colors[level] || '#757575';
-  };
-
   const isTeamFull = (team) => {
-    return team.playerIds.length >= 2;
+    if (!team || !team.playerIds) return false;
+    return (team.playerIds || []).length >= 2;
   };
 
   const getTeamCapacityText = (team) => {
-    return `${team.playerIds.length}/2`;
+    if (!team || !team.playerIds) return '0/2';
+    return `${(team.playerIds || []).length}/2`;
   };
 
   const getTeamPlayersInfo = (team) => {
-    return team.playerIds.map(playerId => {
+    if (!team || !team.playerIds) return '';
+    return (team.playerIds || []).map(playerId => {
       const player = players.find(p => p.id === playerId);
       if (!player) return null;
       return `${player.name} (#${player.rank}, Lvl ${player.skillLevel})`;
     }).filter(Boolean).join(', ');
   };
 
+  const getTeamIcon = (team) => {
+    const iconIndex = team.id % TEAM_ICONS.length;
+    const IconComponent = TEAM_ICONS[iconIndex].icon;
+    return <IconComponent sx={{ color: team.color, mr: 1 }} />;
+  };
+
   return (
-    <Box>
-      <Typography variant="h4" sx={{ mb: 2 }}>Teams</Typography>
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Typography variant="h4">Teams</Typography>
+        <Typography 
+          variant="caption" 
+          sx={{ 
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            px: 1,
+            py: 0.5,
+            borderRadius: 1,
+            fontSize: '0.9rem'
+          }}
+        >
+          {teams.length}
+        </Typography>
+        <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
+          <IconButton 
+            size="small" 
+            onClick={handleExpandCollapseAll}
+            sx={{ 
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' }
+            }}
+            title={isAllExpanded ? "Collapse All" : "Expand All"}
+          >
+            {isAllExpanded ? <UnfoldLessIcon fontSize="small" /> : <UnfoldMoreIcon fontSize="small" />}
+          </IconButton>
+        </Box>
+      </Box>
       <div className="team-list">
         {teams.map((team) => (
           <Paper
@@ -113,7 +186,13 @@ const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }
               }
             }}
           >
-            <Box sx={{ p: 1, display: 'flex', alignItems: 'center' }}>
+            <Box sx={{ 
+              p: 1, 
+              display: 'flex', 
+              alignItems: 'center',
+              borderBottom: expandedTeams[team.id] ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
+              backgroundColor: '#2d2d2d'
+            }}>
               <IconButton 
                 size="small" 
                 onClick={() => toggleTeam(team.id)}
@@ -131,6 +210,7 @@ const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }
                     onChange={(e) => setEditName(e.target.value)}
                     size="small"
                     sx={{ flex: 1 }}
+                    inputProps={{ spellCheck: 'true' }}
                     InputProps={{
                       endAdornment: (
                         <InputAdornment position="end">
@@ -154,6 +234,7 @@ const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }
               ) : (
                 <>
                   <Box sx={{ flex: 1, ml: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {getTeamIcon(team)}
                     <Typography>{team.name}</Typography>
                     <Typography
                       variant="caption"
@@ -172,7 +253,7 @@ const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }
                     >
                       {getTeamCapacityText(team)}
                     </Typography>
-                    {!expandedTeams[team.id] && team.playerIds.length > 0 && (
+                    {!expandedTeams[team.id] && (team.playerIds || []).length > 0 && (
                       <Typography 
                         variant="caption" 
                         sx={{ 
@@ -186,6 +267,7 @@ const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }
                       </Typography>
                     )}
                   </Box>
+
                   <Box className="action-buttons">
                     <IconButton 
                       onClick={() => handleEdit(team)} 
@@ -206,61 +288,73 @@ const TeamList = ({ teams, players, onUpdateTeam, onDeleteTeam, onAssignPlayer }
             </Box>
 
             <Collapse in={expandedTeams[team.id]}>
-              <List dense>
-                {team.playerIds.map(playerId => {
+              <List dense sx={{ 
+                py: 0,
+                backgroundColor: '#262626'
+              }}>
+                {(team.playerIds || []).map(playerId => {
                   const player = players.find(p => p.id === playerId);
                   return player ? (
                     <ListItem 
                       key={player.id}
                       sx={{
+                        display: 'flex',
+                        gap: 2,
+                        pl: 2,
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                         '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        }
+                          backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                        },
                       }}
-                      secondaryAction={
-                        <IconButton 
-                          edge="end" 
+                    >
+                      <Box sx={{ width: 80 }}>
+                        <Typography noWrap>{player.name}</Typography>
+                      </Box>
+
+                      <Box sx={{ width: 50 }}>
+                        <Chip
+                          label={`Lvl ${player.skillLevel}`}
                           size="small"
-                          onClick={() => handleRemovePlayer(team.id, player.id)}
-                          sx={{ 
-                            opacity: 0,
-                            transition: 'opacity 0.2s',
-                            '.MuiListItem-root:hover &': {
-                              opacity: 1
+                          sx={{
+                            backgroundColor: getSkillLevelColor(player.skillLevel),
+                            color: 'black',
+                            height: 20,
+                            '& .MuiChip-label': {
+                              px: 1,
+                              fontSize: '0.7rem',
+                              fontWeight: 'bold'
                             }
                           }}
-                        >
-                          <PersonRemoveIcon fontSize="small" />
-                        </IconButton>
-                      }
-                    >
-                      <ListItemText 
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography>{player.name}</Typography>
-                            <Chip
-                              label={`Level ${player.skillLevel}`}
-                              size="small"
-                              sx={{
-                                backgroundColor: getSkillLevelColor(player.skillLevel),
-                                color: 'black',
-                                height: 20,
-                                '& .MuiChip-label': {
-                                  px: 1,
-                                  fontSize: '0.7rem',
-                                  fontWeight: 'bold'
-                                }
-                              }}
-                            />
-                            <Typography 
-                              variant="caption" 
-                              sx={{ color: 'gray' }}
-                            >
-                              {player.gender}
-                            </Typography>
-                          </Box>
-                        }
-                      />
+                        />
+                      </Box>
+
+                      <Box sx={{ width: 30 }}>
+                        <Typography variant="caption" sx={{ color: 'gray' }}>
+                          {player.gender === 'Male' ? 'M' : 'F'}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ width: 30 }}>
+                        <Typography variant="caption" sx={{ color: 'gray' }}>
+                          #{player.rank}
+                        </Typography>
+                      </Box>
+
+                      <IconButton 
+                        size="small"
+                        onClick={() => handleRemovePlayer(team.id, player.id)}
+                        sx={{ 
+                          opacity: 0,
+                          transition: 'opacity 0.2s',
+                          padding: 0,
+                          ml: 1,
+                          '.MuiListItem-root:hover &': {
+                            opacity: 1
+                          }
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
                     </ListItem>
                   ) : null;
                 })}

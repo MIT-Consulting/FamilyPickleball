@@ -78,9 +78,9 @@ function App() {
   };
 
   const handleUpdatePlayer = (playerId, updates) => {
-    setPlayers(players.map(player => 
-      player.id === playerId ? { ...player, ...updates } : player
-    ));
+    const playerRef = ref(db, `players/${playerId}`);
+    const playerToUpdate = players.find(p => p.id === playerId);
+    set(playerRef, { ...playerToUpdate, ...updates });
   };
 
   const handleDeletePlayer = (playerId) => {
@@ -96,26 +96,25 @@ function App() {
     }
   };
 
-  const handleMovePlayer = (currentIndex, direction) => {
-    if (
-      (direction === 'up' && currentIndex === 0) || 
-      (direction === 'down' && currentIndex === players.length - 1)
-    ) {
-      return; // Don't move if at the edges
+  const handleMovePlayer = (playerId, direction) => {
+    const sortedPlayers = [...players].sort((a, b) => a.rank - b.rank);
+    const currentIndex = sortedPlayers.findIndex(p => p.id === playerId);
+    const newIndex = currentIndex + direction;
+
+    if (newIndex < 0 || newIndex >= sortedPlayers.length) {
+      return;
     }
 
-    const newPlayers = [...players];
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    
-    // Swap players
-    [newPlayers[currentIndex], newPlayers[newIndex]] = 
-    [newPlayers[newIndex], newPlayers[currentIndex]];
-    
-    // Update ranks
-    setPlayers(newPlayers.map((player, index) => ({
-      ...player,
-      rank: index + 1
-    })));
+    // Swap ranks between the two players
+    const player1 = sortedPlayers[currentIndex];
+    const player2 = sortedPlayers[newIndex];
+    const tempRank = player1.rank;
+    player1.rank = player2.rank;
+    player2.rank = tempRank;
+
+    // Update both players in Firebase
+    set(ref(db, `players/${player1.id}`), player1);
+    set(ref(db, `players/${player2.id}`), player2);
   };
 
   const getNextTeamColor = () => {
@@ -130,48 +129,61 @@ function App() {
       playerIds: [],
       color: getNextTeamColor()
     };
-    setTeams([...teams, newTeam]);
+    set(ref(db, `teams/${newTeam.id}`), newTeam);
   };
 
   const handleUpdateTeam = (teamId, updates) => {
-    setTeams(teams.map(team => 
-      team.id === teamId ? { ...team, ...updates } : team
-    ));
+    const teamRef = ref(db, `teams/${teamId}`);
+    const teamToUpdate = teams.find(t => t.id === teamId);
+    set(teamRef, { ...teamToUpdate, ...updates });
   };
 
   const handleDeleteTeam = (teamId) => {
     // Remove team and unassign its players
     const team = teams.find(t => t.id === teamId);
     if (team) {
-      setPlayers(players.map(player => 
-        player.teamId === teamId
-          ? { ...player, teamId: null }
-          : player
-      ));
+      // Update all players that were in this team
+      team.playerIds?.forEach(playerId => {
+        const playerRef = ref(db, `players/${playerId}`);
+        const player = players.find(p => p.id === playerId);
+        if (player) {
+          set(playerRef, { ...player, teamId: null });
+        }
+      });
+
+      // Remove the team from Firebase
+      remove(ref(db, `teams/${teamId}`));
     }
-    setTeams(teams.filter(team => team.id !== teamId));
   };
 
   const handleAssignPlayer = (playerId, teamId) => {
     // Remove player from previous team if any
-    const previousTeam = teams.find(team => team.playerIds.includes(playerId));
+    const previousTeam = teams.find(team => team.playerIds?.includes(playerId));
     if (previousTeam) {
-      handleUpdateTeam(previousTeam.id, {
-        playerIds: previousTeam.playerIds.filter(id => id !== playerId)
-      });
+      const updatedPlayerIds = previousTeam.playerIds?.filter(id => id !== playerId) || [];
+      set(ref(db, `teams/${previousTeam.id}/playerIds`), updatedPlayerIds);
     }
 
     // Add player to new team
     if (teamId) {
-      handleUpdateTeam(teamId, {
-        playerIds: [...teams.find(t => t.id === teamId).playerIds, playerId]
-      });
+      const team = teams.find(t => t.id === teamId);
+      const updatedPlayerIds = [...(team.playerIds || []), playerId];
+      set(ref(db, `teams/${teamId}/playerIds`), updatedPlayerIds);
     }
 
     // Update player's teamId
-    setPlayers(players.map(player =>
-      player.id === playerId ? { ...player, teamId } : player
-    ));
+    const playerRef = ref(db, `players/${playerId}`);
+    const playerToUpdate = players.find(p => p.id === playerId);
+    set(playerRef, { ...playerToUpdate, teamId });
+  };
+
+  const isTeamFull = (team) => {
+    if (!team || !team.playerIds) return false;
+    return (team.playerIds || []).length >= 2;
+  };
+
+  const getTeamCapacityText = (team) => {
+    return `${(team.playerIds || []).length}/2`;
   };
 
   return (
