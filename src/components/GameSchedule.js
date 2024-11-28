@@ -39,7 +39,7 @@ const pulse = keyframes`
 `;
 
 // Component to display a single game card
-const GameCard = ({ game, isCurrent }) => {
+const GameCard = ({ game, isCurrent, isPast, isFuture }) => {
   const getTeamSkill = (players) => {
     return players?.reduce((sum, player) => sum + (player?.skillLevel || 0), 0) || 0;
   };
@@ -64,7 +64,8 @@ const GameCard = ({ game, isCurrent }) => {
           outline: '2px solid',
           outlineColor: 'success.main',
           outlineOffset: '-2px'
-        })
+        }),
+        opacity: isCurrent ? 1 : 0.6
       }}>
         <Stack spacing={1}>
           {/* Team Name and Skill */}
@@ -110,7 +111,8 @@ const GameCard = ({ game, isCurrent }) => {
       sx={{ 
         position: 'relative',
         transition: 'box-shadow 0.2s',
-        '&:hover': { boxShadow: 4 }
+        '&:hover': { boxShadow: 4 },
+        opacity: isCurrent ? 1 : 0.7
       }}
     >
       <CardContent>
@@ -149,7 +151,7 @@ const GameCard = ({ game, isCurrent }) => {
   );
 };
 
-// Constants
+// Constants for durations
 const GAME_DURATION = 300; // 5 minutes in seconds
 const BREAK_DURATION = 120; // 2 minutes in seconds
 
@@ -744,7 +746,8 @@ const GameSchedule = () => {
                 border: index === currentIntervalIndex ? '1px solid' : 'none',
                 borderColor: interval.type === 'break' ? 
                   theme => theme.palette.mode === 'dark' ? 'rgba(211, 47, 47, 0.5)' : 'rgba(211, 47, 47, 0.3)'
-                  : 'primary.main'
+                  : 'primary.main',
+                opacity: index === currentIntervalIndex ? 1 : 0.5
               }}
             >
               {interval.type === 'game' ? (
@@ -756,6 +759,8 @@ const GameSchedule = () => {
                         <GameCard
                           game={game}
                           isCurrent={index === currentIntervalIndex}
+                          isPast={index < currentIntervalIndex}
+                          isFuture={index > currentIntervalIndex}
                         />
                       </Grid>
                     ) : null;
