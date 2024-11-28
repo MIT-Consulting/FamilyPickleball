@@ -9,6 +9,8 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import Sidebar from './components/Sidebar';
 import PlayerList from './components/PlayerList';
 import TeamList from './components/TeamList';
+import Tournament from './components/Tournament';
+import GameSchedule from './components/GameSchedule';
 import './App.css';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ref, onValue, set, remove } from 'firebase/database';
@@ -27,7 +29,6 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import CloudIcon from '@mui/icons-material/Cloud';
 import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
 import AirIcon from '@mui/icons-material/Air';
-import Tournament from './components/Tournament';
 
 const TEAM_COLORS = [
   '#7CB9E8', // bright blue
@@ -342,6 +343,7 @@ function App() {
                   />
                 } />
                 <Route path="/tournament" element={<Tournament />} />
+                <Route path="/schedule" element={<GameSchedule />} />
                 <Route path="/" element={<Navigate to="/teams" replace />} />
               </Routes>
             </Box>
