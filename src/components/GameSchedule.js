@@ -26,10 +26,19 @@ import SportsIcon from '@mui/icons-material/Sports';
 import CoffeeIcon from '@mui/icons-material/Coffee';
 import StarIcon from '@mui/icons-material/Star';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import GroupsIcon from '@mui/icons-material/Groups';
+import ShieldIcon from '@mui/icons-material/Shield';
+import CastleIcon from '@mui/icons-material/Castle';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import { ref, onValue, get } from 'firebase/database';
 import { db } from '../firebase-config';
 import { keyframes } from '@mui/system';
+
+// Family icons mapping
+const FAMILY_ICONS = {
+  Miller: ShieldIcon,
+  Holcomb: CastleIcon,
+  Burton: AccountBalanceIcon
+};
 
 // Animation for the timer pulse
 const pulse = keyframes`
@@ -37,6 +46,19 @@ const pulse = keyframes`
   50% { transform: scale(1.02); }
   100% { transform: scale(1); }
 `;
+
+// Add the skill color scale function
+const getSkillColor = (skill) => {
+  if (skill <= 2) return '#FFD700';  // Yellow
+  if (skill <= 3) return '#FFC300';
+  if (skill <= 4) return '#FFB000';
+  if (skill <= 5) return '#FF9700';
+  if (skill <= 6) return '#FF7E00';
+  if (skill <= 7) return '#FF6500';
+  if (skill <= 8) return '#FF4C00';
+  if (skill <= 9) return '#FF3300';
+  return '#FF0000';  // Red for 10 or higher
+};
 
 // Component to display a single game card
 const GameCard = ({ game, isCurrent, isPast, isFuture }) => {
@@ -79,25 +101,34 @@ const GameCard = ({ game, isCurrent, isPast, isFuture }) => {
               label={totalSkill}
               size="small"
               variant="outlined"
-              sx={{ borderColor: 'warning.main', color: 'warning.main' }}
+              sx={{ 
+                borderColor: getSkillColor(totalSkill),
+                color: getSkillColor(totalSkill),
+                '& .MuiChip-icon': { 
+                  color: getSkillColor(totalSkill)
+                }
+              }}
             />
           </Stack>
 
           {/* Players */}
           {validPlayers.length > 0 && (
             <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 0.5 }}>
-              {validPlayers.map((player, index) => (
-                <Chip
-                  key={index}
-                  size="small"
-                  label={player.name}
-                  icon={<GroupsIcon sx={{ fontSize: '0.9rem' }} />}
-                  sx={{ 
-                    bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
-                    '& .MuiChip-icon': { color: player.family === 'Miller' ? '#90caf9' : player.family === 'Holcomb' ? '#c48b9f' : '#81c784' }
-                  }}
-                />
-              ))}
+              {validPlayers.map((player, index) => {
+                const FamilyIcon = FAMILY_ICONS[player.family];
+                return (
+                  <Chip
+                    key={index}
+                    size="small"
+                    label={player.name}
+                    icon={FamilyIcon ? <FamilyIcon sx={{ fontSize: '0.9rem' }} /> : null}
+                    sx={{ 
+                      bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)',
+                      '& .MuiChip-icon': { color: player.family === 'Miller' ? '#90caf9' : player.family === 'Holcomb' ? '#c48b9f' : '#81c784' }
+                    }}
+                  />
+                );
+              })}
             </Stack>
           )}
         </Stack>
