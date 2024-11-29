@@ -64,71 +64,68 @@ const FAMILY_ICONS = {
 
 // Initial bracket structure for 12 teams
 const createInitialBracket = (teams, players) => {
-  // Sort teams by skill level for seeding
+  // Sort teams by rank for seeding
   const sortedTeams = [...teams].sort((a, b) => {
-    const aSkill = a.playerIds?.reduce((sum, id) => {
-      const player = players.find(p => p.id === id);
-      return sum + (player?.skillLevel || 0);
-    }, 0) || 0;
-    const bSkill = b.playerIds?.reduce((sum, id) => {
-      const player = players.find(p => p.id === id);
-      return sum + (player?.skillLevel || 0);
-    }, 0) || 0;
-    return bSkill - aSkill;
+    // Use rank if available, fallback to array index + 1
+    const aRank = a.rank ?? teams.findIndex(t => t.id === a.id) + 1;
+    const bRank = b.rank ?? teams.findIndex(t => t.id === b.id) + 1;
+    return aRank - bRank;
   });
 
   // First round matches (8 teams, 4 matches)
+  // Arranged so that top seeds are spread out and can't meet until later
   const firstRoundMatches = [
     { 
       id: 'W1', 
       team1: sortedTeams[4],   // 5th seed
-      team2: sortedTeams[11],  // 12th seed
+      team2: sortedTeams[11],  // 12th seed (plays into 1st seed's bracket)
       winner: null 
     },
     { 
       id: 'W2', 
-      team1: sortedTeams[5],   // 6th seed
-      team2: sortedTeams[10],  // 11th seed
+      team1: sortedTeams[7],   // 8th seed
+      team2: sortedTeams[8],   // 9th seed (plays into 4th seed's bracket)
       winner: null 
     },
     { 
       id: 'W3', 
-      team1: sortedTeams[6],   // 7th seed
-      team2: sortedTeams[9],   // 10th seed
+      team1: sortedTeams[5],   // 6th seed
+      team2: sortedTeams[10],  // 11th seed (plays into 2nd seed's bracket)
       winner: null 
     },
     { 
       id: 'W4', 
-      team1: sortedTeams[7],   // 8th seed
-      team2: sortedTeams[8],   // 9th seed
+      team1: sortedTeams[6],   // 7th seed
+      team2: sortedTeams[9],   // 10th seed (plays into 3rd seed's bracket)
       winner: null 
     }
   ];
 
   // Second round matches (top 4 seeds with byes)
+  // Arranged so 1st and 2nd seeds are in opposite halves
   const secondRoundMatches = [
     { 
       id: 'W5', 
       team1: sortedTeams[0],  // 1st seed
-      team2: null,            // Winner of W1
+      team2: null,            // Winner of W1 (5th/12th)
       winner: null 
     },
     { 
       id: 'W6', 
-      team1: sortedTeams[1],  // 2nd seed
-      team2: null,            // Winner of W2
+      team1: sortedTeams[3],  // 4th seed
+      team2: null,            // Winner of W2 (8th/9th)
       winner: null 
     },
     { 
       id: 'W7', 
-      team1: sortedTeams[2],  // 3rd seed
-      team2: null,            // Winner of W3
+      team1: sortedTeams[1],  // 2nd seed
+      team2: null,            // Winner of W3 (6th/11th)
       winner: null 
     },
     { 
       id: 'W8', 
-      team1: sortedTeams[3],  // 4th seed
-      team2: null,            // Winner of W4
+      team1: sortedTeams[2],  // 3rd seed
+      team2: null,            // Winner of W4 (7th/10th)
       winner: null 
     }
   ];

@@ -13,7 +13,7 @@ import Tournament from './components/Tournament';
 import GameSchedule from './components/GameSchedule';
 import './App.css';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ref, onValue, set, remove } from 'firebase/database';
+import { ref, onValue, set, remove, update } from 'firebase/database';
 import { db } from './firebase-config';
 import StarIcon from '@mui/icons-material/Star';
 import BoltIcon from '@mui/icons-material/Bolt';
@@ -212,13 +212,17 @@ function App() {
 
   const handleAddTeam = (teamName) => {
     try {
+      // Sort teams to get the highest rank
+      const maxRank = teams.reduce((max, team) => Math.max(max, team.rank || 0), 0);
+      
       const newTeam = {
         id: Date.now(),
         name: teamName,
         color: getRandomColor(),
         iconName: TEAM_ICONS[Math.floor(Math.random() * TEAM_ICONS.length)].name,
         playerIds: [],
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        rank: maxRank + 1  // Set rank to one more than the highest existing rank
       };
       
       set(ref(db, `teams/${newTeam.id}`), newTeam);
@@ -295,6 +299,40 @@ function App() {
     }
   };
 
+  const handleMoveTeam = (teamId, direction) => {
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return;
+
+    // Sort teams by existing rank or array index if rank is undefined
+    const sortedTeams = [...teams].sort((a, b) => {
+      const aRank = a.rank ?? teams.findIndex(t => t.id === a.id) + 1;
+      const bRank = b.rank ?? teams.findIndex(t => t.id === b.id) + 1;
+      return aRank - bRank;
+    });
+
+    // Get current index in sorted array
+    const currentIndex = sortedTeams.findIndex(t => t.id === teamId);
+    const targetIndex = currentIndex + direction;
+
+    // Validate target index
+    if (targetIndex < 0 || targetIndex >= sortedTeams.length) return;
+
+    // Update ranks for all teams to ensure consistency
+    const updates = {};
+    sortedTeams.forEach((t, i) => {
+      if (i === currentIndex) {
+        updates[`teams/${t.id}/rank`] = targetIndex + 1;
+      } else if (i === targetIndex) {
+        updates[`teams/${t.id}/rank`] = currentIndex + 1;
+      } else {
+        updates[`teams/${t.id}/rank`] = i + 1;
+      }
+    });
+
+    // Update all ranks in a single operation
+    update(ref(db), updates);
+  };
+
   return (
     <ColorModeContext.Provider value={colorMode}>
       <Router>
@@ -329,6 +367,7 @@ function App() {
                     onRandomizeTeams={handleRandomizeTeams}
                     onUpdatePlayer={handleUpdatePlayer}
                     onAddTeam={handleAddTeam}
+                    onMoveTeam={handleMoveTeam}
                   />
                 } />
                 <Route path="/players" element={

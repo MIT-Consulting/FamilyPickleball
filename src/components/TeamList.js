@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Typography,
   Box,
@@ -47,6 +47,8 @@ import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
 import AirIcon from '@mui/icons-material/Air';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
 import SortIcon from '@mui/icons-material/Sort';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { getSkillLevelColor, getSkillLevelText } from '../utils/skillLevels';
 import { db } from '../firebase-config';
 import { collection, addDoc, deleteDoc, doc } from 'firebase/firestore';
@@ -138,7 +140,8 @@ const TeamList = ({
   onAssignPlayer, 
   onRandomizeTeams,
   onUpdatePlayer,
-  onAddTeam
+  onAddTeam,
+  onMoveTeam
 }) => {
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
@@ -162,13 +165,36 @@ const TeamList = ({
   };
 
   const sortedTeams = useMemo(() => {
-    if (!sortBySkill) return teams;
-    return [...teams].sort((a, b) => {
-      const aSkill = getTeamSkillInfo(a).total;
-      const bSkill = getTeamSkillInfo(b).total;
-      return bSkill - aSkill; // Sort in descending order
-    });
+    const teamsWithRanks = teams.map(team => ({
+      ...team,
+      rank: team.rank ?? teams.findIndex(t => t.id === team.id) + 1
+    }));
+
+    if (sortBySkill) {
+      return [...teamsWithRanks].sort((a, b) => {
+        const aSkill = getTeamSkillInfo(a).total;
+        const bSkill = getTeamSkillInfo(b).total;
+        return bSkill - aSkill;
+      });
+    }
+
+    return [...teamsWithRanks].sort((a, b) => a.rank - b.rank);
   }, [teams, sortBySkill, players]);
+
+  // Update team rankings in Firebase
+  const updateTeamRankings = useCallback(() => {
+    sortedTeams.forEach((team, index) => {
+      const rank = index + 1;
+      if (team.rank !== rank) {
+        onUpdateTeam(team.id, { rank });
+      }
+    });
+  }, [sortedTeams, onUpdateTeam]);
+
+  // Update rankings whenever sort changes
+  useEffect(() => {
+    updateTeamRankings();
+  }, [sortedTeams, updateTeamRankings]);
 
   const isAllExpanded = useMemo(() => {
     return teams.length > 0 && teams.every(team => expandedTeams[team.id]);
@@ -539,6 +565,66 @@ const TeamList = ({
                       gap: 1,
                       flexWrap: 'wrap'
                     }}>
+                      <Box className="move-buttons" sx={{ 
+                        display: { xs: 'none', sm: 'flex' },
+                        flexDirection: 'column',
+                        gap: '2px',
+                        mr: 1
+                      }}>
+                        <IconButton
+                          onClick={() => onMoveTeam(team.id, -1)}
+                          disabled={team.rank === 1}
+                          size="small"
+                          sx={{ 
+                            padding: 0,
+                            width: 20,
+                            height: 20,
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            '& .MuiSvgIcon-root': {
+                              fontSize: '1rem'
+                            },
+                            '.MuiPaper-root:hover &': {
+                              opacity: 1
+                            }
+                          }}
+                        >
+                          <KeyboardArrowUpIcon />
+                        </IconButton>
+                        <IconButton
+                          onClick={() => onMoveTeam(team.id, 1)}
+                          disabled={team.rank === teams.length}
+                          size="small"
+                          sx={{ 
+                            padding: 0,
+                            width: 20,
+                            height: 20,
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            '& .MuiSvgIcon-root': {
+                              fontSize: '1rem'
+                            },
+                            '.MuiPaper-root:hover &': {
+                              opacity: 1
+                            }
+                          }}
+                        >
+                          <KeyboardArrowDownIcon />
+                        </IconButton>
+                      </Box>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                          px: 1,
+                          py: 0.25,
+                          borderRadius: 1,
+                          fontSize: '0.7rem',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        #{team.rank || sortedTeams.findIndex(t => t.id === team.id) + 1}
+                      </Typography>
                       {getTeamIcon(team)}
                       <Typography sx={{ minWidth: { xs: '100%', sm: 'auto' } }}>{team.name}</Typography>
                       <Typography
