@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Typography,
   Box,
@@ -152,8 +152,8 @@ const GameCard = ({ game, isCurrent, isPast, isFuture }) => {
 };
 
 // Constants for durations
-const GAME_DURATION = 300; // 5 minutes in seconds
-const BREAK_DURATION = 120; // 2 minutes in seconds
+const GAME_DURATION = 45; // 45 seconds for testing
+const BREAK_DURATION = 30; // 30 seconds for testing
 
 // Helper function to format time
 const formatTime = (seconds) => {
@@ -207,6 +207,8 @@ const INTERVALS = [
 
 const GameSchedule = () => {
   const theme = useTheme();
+  
+  // All state declarations
   const [isRunning, setIsRunning] = useState(false);
   const [currentIntervalIndex, setCurrentIntervalIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(GAME_DURATION);
@@ -214,8 +216,216 @@ const GameSchedule = () => {
   const [schedule, setSchedule] = useState([]);
   const [teams, setTeams] = useState([]);
   const [players, setPlayers] = useState([]);
+  const [lastTickTime, setLastTickTime] = useState(Date.now());
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [backupTimer, setBackupTimer] = useState(null);
+  const [lastIntervalChange, setLastIntervalChange] = useState(Date.now());
+  
+  // All refs
   const timerRef = useRef(null);
   const scheduleRef = useRef(null);
+  const nextIntervalTimeoutRef = useRef(null);
+  const backupIntervalRef = useRef(null);
+  const stateCheckIntervalRef = useRef(null);
+  const advanceToNextIntervalRef = useRef(null);
+  const resetTimerRef = useRef(null);
+
+  // Computed values
+  const currentInterval = INTERVALS[currentIntervalIndex];
+  
+  const currentGames = useMemo(() => {
+    if (!currentInterval?.games || !schedule.length) return [];
+    return currentInterval.games.map(gameId => 
+      schedule.find(game => game.id === gameId)
+    ).filter(Boolean);
+  }, [currentInterval, schedule]);
+
+  const nextGames = useMemo(() => {
+    let nextIndex = currentIntervalIndex + 1;
+    while (nextIndex < INTERVALS.length) {
+      const nextInterval = INTERVALS[nextIndex];
+      if (nextInterval?.type === 'game' && nextInterval.games) {
+        return nextInterval.games.map(gameId => 
+          schedule.find(game => game.id === gameId)
+        ).filter(Boolean);
+      }
+      nextIndex++;
+    }
+    return [];
+  }, [currentIntervalIndex, schedule]);
+
+  const previousWinners = useMemo(() => {
+    let prevIndex = currentIntervalIndex - 1;
+    while (prevIndex >= 0) {
+      const prevInterval = INTERVALS[prevIndex];
+      if (prevInterval?.type === 'game' && prevInterval.games) {
+        return prevInterval.games.map(gameId => 
+          schedule.find(game => game.id === gameId)
+        ).filter(game => game?.winner);
+      }
+      prevIndex--;
+    }
+    return [];
+  }, [currentIntervalIndex, schedule]);
+
+  // Basic timer functions
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (nextIntervalTimeoutRef.current) {
+      clearTimeout(nextIntervalTimeoutRef.current);
+      nextIntervalTimeoutRef.current = null;
+    }
+  }, []);
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) return;
+
+    const tick = () => {
+      setTimeRemaining(prev => {
+        const newTime = Math.max(0, prev - 1);
+        
+        // If timer has reached 0, schedule next interval
+        if (newTime === 0 && !isTransitioning) {
+          nextIntervalTimeoutRef.current = setTimeout(() => {
+            advanceToNextIntervalRef.current?.();
+          }, 0);
+        }
+        
+        return newTime;
+      });
+    };
+
+    // Set up interval for exactly 1 second ticks
+    timerRef.current = setInterval(tick, 1000);
+  }, [isTransitioning]);
+
+  const resetTimer = useCallback(() => {
+    stopTimer();
+    setIsRunning(false);
+    setCurrentIntervalIndex(0);
+    setTimeRemaining(GAME_DURATION);
+    setLastTickTime(Date.now());
+    setIsTransitioning(false);
+  }, [stopTimer]);
+
+  // Store resetTimer in ref
+  useEffect(() => {
+    resetTimerRef.current = resetTimer;
+  }, [resetTimer]);
+
+  // Now we can define the validation function
+  const validateAndFixState = useCallback(() => {
+    // Check if we're in a valid state
+    if (currentIntervalIndex >= INTERVALS.length) {
+      console.warn('Invalid interval index, resetting timer');
+      resetTimerRef.current?.();
+      return false;
+    }
+
+    // Check if time remaining is valid for current interval
+    const expectedDuration = INTERVALS[currentIntervalIndex]?.type === 'break' ? BREAK_DURATION : GAME_DURATION;
+    if (timeRemaining > expectedDuration) {
+      console.warn('Invalid time remaining, fixing...');
+      setTimeRemaining(expectedDuration);
+      return false;
+    }
+
+    // Check for stuck state
+    const now = Date.now();
+    if (isRunning && (now - lastTickTime > 3000)) {
+      console.warn('Timer appears stuck, restarting...');
+      stopTimer();
+      setLastTickTime(now);
+      startTimer();
+      return false;
+    }
+
+    // Check for stuck transition
+    if (isTransitioning && (now - lastIntervalChange > 5000)) {
+      console.warn('Stuck in transition, recovering...');
+      setIsTransitioning(false);
+      return false;
+    }
+
+    return true;
+  }, [currentIntervalIndex, timeRemaining, isRunning, lastTickTime, isTransitioning, lastIntervalChange, stopTimer, startTimer]);
+
+  const advanceToNextInterval = useCallback(() => {
+    if (isTransitioning || currentIntervalIndex >= INTERVALS.length - 1) return;
+
+    setIsTransitioning(true);
+    setLastIntervalChange(Date.now());
+    stopTimer();
+
+    try {
+      const nextIndex = currentIntervalIndex + 1;
+      const nextInterval = INTERVALS[nextIndex];
+      const nextDuration = nextInterval?.type === 'break' ? BREAK_DURATION : GAME_DURATION;
+
+      // Set backup timer in case primary fails
+      setBackupTimer(nextDuration);
+
+      setCurrentIntervalIndex(nextIndex);
+      setTimeRemaining(nextDuration);
+      setLastTickTime(Date.now());
+
+      // Ensure timer restarts if it was running
+      if (isRunning) {
+        // Primary timeout
+        nextIntervalTimeoutRef.current = setTimeout(() => {
+          startTimer();
+          setIsTransitioning(false);
+        }, 50);
+
+        // Backup timeout in case primary fails
+        setTimeout(() => {
+          if (isTransitioning) {
+            console.warn('Primary transition failed, using backup');
+            setIsTransitioning(false);
+            startTimer();
+          }
+        }, 1000);
+      } else {
+        setIsTransitioning(false);
+      }
+    } catch (error) {
+      console.error('Error advancing interval:', error);
+      // Recovery attempt
+      setTimeRemaining(GAME_DURATION);
+      setIsTransitioning(false);
+      stopTimer();
+    }
+  }, [currentIntervalIndex, isRunning, isTransitioning, startTimer, stopTimer]);
+
+  // Store the latest version of advanceToNextInterval in a ref
+  useEffect(() => {
+    advanceToNextIntervalRef.current = advanceToNextInterval;
+  }, [advanceToNextInterval]);
+
+  const toggleTimer = useCallback(() => {
+    if (isTransitioning) return;
+
+    if (isRunning) {
+      stopTimer();
+    } else {
+      // If we're at 0, advance to next interval before starting
+      if (timeRemaining === 0 && currentIntervalIndex < INTERVALS.length - 1) {
+        advanceToNextInterval();
+      } else {
+        setLastTickTime(Date.now());
+        startTimer();
+      }
+    }
+    setIsRunning(prev => !prev);
+  }, [isRunning, timeRemaining, currentIntervalIndex, isTransitioning, advanceToNextInterval, startTimer, stopTimer]);
+
+  const handleSkipNext = useCallback(() => {
+    if (isTransitioning) return;
+    advanceToNextInterval();
+  }, [isTransitioning, advanceToNextInterval]);
 
   // Load all tournament data
   useEffect(() => {
@@ -350,58 +560,50 @@ const GameSchedule = () => {
     setSchedule(games);
   };
 
-  // Timer control functions
-  const startTimer = () => {
-    if (timerRef.current) return;
-    
-    timerRef.current = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          // Move to next interval when timer reaches 0
-          handleSkipNext();
-          return getCurrentIntervalDuration();
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const stopTimer = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  const toggleTimer = () => {
-    if (isRunning) {
-      stopTimer();
-    } else {
-      startTimer();
-    }
-    setIsRunning(!isRunning);
-  };
-
-  const resetTimer = () => {
-    stopTimer();
-    setIsRunning(false);
-    setCurrentIntervalIndex(0);
-    setTimeRemaining(GAME_DURATION);
-  };
-
   const getCurrentIntervalDuration = () => {
     const currentInterval = INTERVALS[currentIntervalIndex];
     return currentInterval?.type === 'break' ? BREAK_DURATION : GAME_DURATION;
   };
 
-  const handleSkipNext = () => {
-    if (currentIntervalIndex < INTERVALS.length - 1) {
-      setCurrentIntervalIndex(prev => prev + 1);
-      setTimeRemaining(INTERVALS[currentIntervalIndex + 1]?.type === 'break' ? BREAK_DURATION : GAME_DURATION);
-    } else {
-      resetTimer();
+  // Cleanup effect
+  useEffect(() => {
+    return () => {
+      stopTimer();
+      if (nextIntervalTimeoutRef.current) {
+        clearTimeout(nextIntervalTimeoutRef.current);
+      }
+      if (backupIntervalRef.current) {
+        clearInterval(backupIntervalRef.current);
+      }
+      if (stateCheckIntervalRef.current) {
+        clearInterval(stateCheckIntervalRef.current);
+      }
+    };
+  }, [stopTimer]);
+
+  // Effect to ensure timer state consistency
+  useEffect(() => {
+    if (!isRunning || isTransitioning) return;
+
+    const now = Date.now();
+    const timeSinceLastTick = Math.floor((now - lastTickTime) / 1000);
+
+    // If more than 2 seconds have passed since last tick, resync the timer
+    if (timeSinceLastTick > 2) {
+      setLastTickTime(now);
+      setTimeRemaining(prev => Math.max(0, prev - timeSinceLastTick));
     }
-  };
+  }, [isRunning, lastTickTime, isTransitioning]);
+
+  // Effect to handle interval changes
+  useEffect(() => {
+    if (currentInterval) {
+      const newDuration = currentInterval.type === 'break' ? BREAK_DURATION : GAME_DURATION;
+      if (timeRemaining > newDuration) {
+        setTimeRemaining(newDuration);
+      }
+    }
+  }, [currentInterval]);
 
   // Auto-scroll to current game
   useEffect(() => {
@@ -416,53 +618,70 @@ const GameSchedule = () => {
     }
   }, [currentIntervalIndex]);
 
-  const currentInterval = INTERVALS[currentIntervalIndex];
-
-  // Find the current games in the schedule
-  const getCurrentGames = () => {
-    if (!currentInterval?.games || !schedule.length) return [];
-    return currentInterval.games.map(gameId => 
-      schedule.find(game => game.id === gameId)
-    ).filter(Boolean);
-  };
-
-  // Add function to get next games, skipping breaks
-  const getNextGames = () => {
-    let nextIndex = currentIntervalIndex + 1;
-    // Keep looking forward until we find games or reach the end
-    while (nextIndex < INTERVALS.length) {
-      const nextInterval = INTERVALS[nextIndex];
-      if (nextInterval?.type === 'game' && nextInterval.games) {
-        return nextInterval.games.map(gameId => 
-          schedule.find(game => game.id === gameId)
-        ).filter(Boolean);
+  // Add backup interval check
+  useEffect(() => {
+    // Set up backup interval checker
+    backupIntervalRef.current = setInterval(() => {
+      if (isRunning && !isTransitioning && timeRemaining <= 0) {
+        console.warn('Backup interval triggered advancement');
+        advanceToNextInterval();
       }
-      nextIndex++;
-    }
-    return [];
-  };
+    }, 1000);
 
-  // Add function to get previous game winners
-  const getPreviousGameWinners = () => {
-    let prevIndex = currentIntervalIndex - 1;
-    while (prevIndex >= 0) {
-      const prevInterval = INTERVALS[prevIndex];
-      if (prevInterval?.type === 'game' && prevInterval.games) {
-        return prevInterval.games.map(gameId => 
-          schedule.find(game => game.id === gameId)
-        ).filter(game => game?.winner); // Only return games with winners
+    // Set up state validator
+    stateCheckIntervalRef.current = setInterval(() => {
+      validateAndFixState();
+    }, 2000);
+
+    return () => {
+      if (backupIntervalRef.current) {
+        clearInterval(backupIntervalRef.current);
       }
-      prevIndex--;
-    }
-    return [];
-  };
+      if (stateCheckIntervalRef.current) {
+        clearInterval(stateCheckIntervalRef.current);
+      }
+    };
+  }, [isRunning, isTransitioning, timeRemaining, advanceToNextInterval, validateAndFixState]);
 
-  const currentGames = getCurrentGames();
-  const nextGames = getNextGames();
-  const previousWinners = getPreviousGameWinners();
+  // Add backup timer check
+  useEffect(() => {
+    if (backupTimer !== null && timeRemaining > backupTimer) {
+      console.warn('Time remaining exceeded backup timer, fixing...');
+      setTimeRemaining(backupTimer);
+    }
+  }, [backupTimer, timeRemaining]);
 
   return (
     <Box sx={{ p: 3, height: 'calc(100vh - 24px)', display: 'flex', flexDirection: 'column' }}>
+      {/* Tournament Completion Banner */}
+      {tournament?.finals?.match?.winner && (
+        <Paper 
+          elevation={3}
+          sx={{ 
+            p: 2, 
+            mb: 3, 
+            backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(76, 175, 80, 0.05)',
+            borderRadius: 2,
+            border: '1px solid',
+            borderColor: 'success.main',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+            animation: `${pulse} 2s infinite ease-in-out`
+          }}
+        >
+          <EmojiEventsIcon sx={{ color: 'warning.main', fontSize: '2rem' }} />
+          <Typography variant="h5" sx={{ color: 'success.main', fontWeight: 'bold' }}>
+            Tournament Complete! 
+          </Typography>
+          <Typography variant="h5" sx={{ color: 'text.primary' }}>
+            Winner: {tournament.finals.match.winner.name}
+          </Typography>
+          <EmojiEventsIcon sx={{ color: 'warning.main', fontSize: '2rem' }} />
+        </Paper>
+      )}
+      
       {/* Timer Section */}
       <Paper 
         elevation={3}

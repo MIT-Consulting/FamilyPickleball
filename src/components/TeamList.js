@@ -328,16 +328,19 @@ const TeamList = ({
   };
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ 
+      p: { xs: 1, sm: 2, md: 3 },  // Responsive padding
+    }}>
       <Box 
         component="form" 
         onSubmit={addTeam}
         sx={{ 
           mb: 3,
-          p: 2,
+          p: { xs: 1, sm: 2 },  // Responsive padding
           backgroundColor: 'rgba(255, 255, 255, 0.05)',
           borderRadius: 1,
           display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },  // Stack on mobile
           gap: 2
         }}
       >
@@ -366,14 +369,16 @@ const TeamList = ({
           type="submit"
           variant="contained"
           disabled={!newTeamName.trim()}
-          sx={{ minWidth: 120 }}
+          sx={{ 
+            minWidth: { xs: '100%', sm: 120 }  // Full width on mobile
+          }}
         >
           Add Team
         </Button>
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Typography variant="h4">Teams</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+        <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>Teams</Typography>
         <Typography 
           variant="caption" 
           sx={{ 
@@ -386,7 +391,14 @@ const TeamList = ({
         >
           {teams.length}
         </Typography>
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 0.5 }}>
+        <Box sx={{ 
+          ml: { xs: 0, sm: 'auto' }, 
+          mt: { xs: 1, sm: 0 },
+          width: { xs: '100%', sm: 'auto' },
+          display: 'flex', 
+          gap: 0.5,
+          justifyContent: { xs: 'center', sm: 'flex-end' }
+        }}>
           <Tooltip title={sortBySkill ? "Sort by original order" : "Sort by total skill level"}>
             <IconButton
               size="small"
@@ -450,6 +462,8 @@ const TeamList = ({
                 p: 1, 
                 display: 'flex', 
                 alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: { xs: 1, sm: 0 },
                 borderBottom: expandedTeams[team.id] ? '1px solid rgba(255, 255, 255, 0.1)' : 'none',
                 backgroundColor: '#2d2d2d'
               }}>
@@ -464,7 +478,13 @@ const TeamList = ({
                 </IconButton>
 
                 {editingId === team.id ? (
-                  <Box sx={{ flex: 1, display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Box sx={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: 1, 
+                    alignItems: { xs: 'stretch', sm: 'center' }
+                  }}>
                     <TextField
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
@@ -486,32 +506,41 @@ const TeamList = ({
                         ),
                       }}
                     />
-                    <input
-                      type="color"
-                      value={editColor}
-                      onChange={(e) => setEditColor(e.target.value)}
-                      style={{ 
-                        width: 32, 
-                        height: 32, 
-                        padding: 0, 
-                        border: 'none',
-                        borderRadius: '4px',
-                        backgroundColor: 'transparent',
-                        cursor: 'pointer'
-                      }}
-                    />
-                    <IconButton onClick={() => handleSave(team.id)} color="primary" size="small">
-                      <SaveIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton onClick={handleCancel} color="secondary" size="small">
-                      <CancelIcon fontSize="small" />
-                    </IconButton>
+                    <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'space-between', sm: 'flex-start' } }}>
+                      <input
+                        type="color"
+                        value={editColor}
+                        onChange={(e) => setEditColor(e.target.value)}
+                        style={{ 
+                          width: 32, 
+                          height: 32, 
+                          padding: 0, 
+                          border: 'none',
+                          borderRadius: '4px',
+                          backgroundColor: 'transparent',
+                          cursor: 'pointer'
+                        }}
+                      />
+                      <IconButton onClick={() => handleSave(team.id)} color="primary" size="small">
+                        <SaveIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton onClick={handleCancel} color="secondary" size="small">
+                        <CancelIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </Box>
                 ) : (
                   <>
-                    <Box sx={{ flex: 1, ml: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ 
+                      flex: 1, 
+                      ml: 1, 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 1,
+                      flexWrap: 'wrap'
+                    }}>
                       {getTeamIcon(team)}
-                      <Typography>{team.name}</Typography>
+                      <Typography sx={{ minWidth: { xs: '100%', sm: 'auto' } }}>{team.name}</Typography>
                       <Typography
                         variant="caption"
                         sx={{
@@ -524,7 +553,8 @@ const TeamList = ({
                           px: 1,
                           py: 0.25,
                           borderRadius: 1,
-                          fontSize: '0.7rem'
+                          fontSize: '0.7rem',
+                          order: { xs: -1, sm: 0 }
                         }}
                       >
                         {getTeamCapacityText(team)}

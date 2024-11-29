@@ -255,7 +255,9 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
   });
 
   return (
-    <Box sx={{ p: 3 }}>
+    <Box sx={{ 
+      p: { xs: 1, sm: 2, md: 3 }  // Responsive padding
+    }}>
       {/* Add Player Controls */}
       <Paper 
         sx={{ 
@@ -267,7 +269,7 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
         <Box
           onClick={() => setIsAddPlayerOpen(!isAddPlayerOpen)}
           sx={{ 
-            p: 2,
+            p: { xs: 1, sm: 2 },  // Responsive padding
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -291,7 +293,7 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
             component="form" 
             onSubmit={handleSubmit}
             sx={{ 
-              p: 2,
+              p: { xs: 1, sm: 2 },  // Responsive padding
               pt: 0,
               display: 'flex',
               flexDirection: 'column',
@@ -299,7 +301,11 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
             }}
           >
             {/* Name and Gender row */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },  // Stack on mobile
+              gap: 2 
+            }}>
               <TextField
                 inputRef={playerNameInputRef}
                 label="Player Name"
@@ -311,7 +317,15 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                 sx={{ flex: 1 }}
               />
               
-              <ButtonGroup variant="contained" sx={{ minWidth: 200 }}>
+              <ButtonGroup 
+                variant="contained" 
+                sx={{ 
+                  minWidth: { xs: '100%', sm: 200 },  // Full width on mobile
+                  '& .MuiButton-root': {
+                    flex: 1
+                  }
+                }}
+              >
                 <Button
                   onClick={() => setIsMale(true)}
                   variant={isMale ? "contained" : "outlined"}
@@ -335,17 +349,24 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
               </ButtonGroup>
             </Box>
 
-            {/* Skill and Family row */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <FormControl size="small" sx={{ flex: 1 }}>
-                <InputLabel>Skill Level</InputLabel>
+            {/* Skill Level and Family row */}
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },  // Stack on mobile
+              gap: 2,
+              alignItems: 'flex-start'
+            }}>
+              <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+                <InputLabel id="skill-level-label">Skill Level</InputLabel>
                 <Select
+                  labelId="skill-level-label"
                   value={skillLevel}
-                  label="Skill Level"
                   onChange={(e) => setSkillLevel(e.target.value)}
+                  size="small"
+                  label="Skill Level"
                 >
                   {[1, 2, 3, 4, 5].map((level) => (
-                    <MenuItem key={level} value={level} sx={{ minWidth: '100%' }}>
+                    <MenuItem key={level} value={level}>
                       <Box sx={{ 
                         display: 'flex', 
                         alignItems: 'center',
@@ -354,8 +375,6 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                         py: 0.25,
                         borderRadius: 1,
                         color: 'black',
-                        width: 'calc(100% - 24px)',  // Leave space for the dropdown arrow
-                        mr: 'auto'  // Push the box to the left
                       }}>
                         Lvl {level} - {getSkillLevelText(level)}
                       </Box>
@@ -364,7 +383,15 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                 </Select>
               </FormControl>
 
-              <ButtonGroup variant="contained" sx={{ minWidth: 300 }}>
+              <ButtonGroup 
+                variant="contained" 
+                sx={{ 
+                  minWidth: { xs: '100%', sm: 300 },  // Full width on mobile
+                  '& .MuiButton-root': {
+                    flex: 1
+                  }
+                }}
+              >
                 <Button
                   onClick={() => setFamily('Miller')}
                   variant={family === 'Miller' ? "contained" : "outlined"}
@@ -401,8 +428,14 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
         </Collapse>
       </Paper>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Typography variant="h4">Players</Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: 1, 
+        mb: 2,
+        flexWrap: 'wrap'
+      }}>
+        <Typography variant="h4" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>Players</Typography>
         <Typography 
           variant="caption" 
           sx={{ 
@@ -417,7 +450,15 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
           {familyFilter && ` / ${players.length}`}
         </Typography>
 
-        <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ 
+          ml: { xs: 0, sm: 'auto' },
+          mt: { xs: 1, sm: 0 },
+          width: { xs: '100%', sm: 'auto' },
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: 1,
+          justifyContent: { xs: 'center', sm: 'flex-end' }
+        }}>
           {/* Sort toggle button */}
           <IconButton
             onClick={() => setSortBySkill(!sortBySkill)}
@@ -437,42 +478,6 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
               <FormatListNumberedIcon />
             )}
           </IconButton>
-
-          {/* Family filter buttons */}
-          {Object.entries(FAMILY_ICONS).map(([family, Icon]) => (
-            <IconButton
-              key={family}
-              onClick={() => setFamilyFilter(family === familyFilter ? null : family)}
-              sx={{ 
-                color: FAMILY_COLORS[family],
-                opacity: familyFilter === family ? 1 : 0.5,
-                bgcolor: familyFilter === family ? `${FAMILY_COLORS[family]}1A` : 'transparent', // 10% opacity
-                '&:hover': {
-                  bgcolor: `${FAMILY_COLORS[family]}33`, // 20% opacity
-                  opacity: 0.8
-                }
-              }}
-              size="small"
-              title={`Show ${family} family${familyFilter === family ? ' (active)' : ''}`}
-            >
-              <Icon />
-            </IconButton>
-          ))}
-          {familyFilter && (
-            <IconButton
-              onClick={() => setFamilyFilter(null)}
-              sx={{ 
-                color: 'rgba(255, 255, 255, 0.7)',
-                '&:hover': {
-                  bgcolor: 'rgba(255, 255, 255, 0.1)'
-                }
-              }}
-              size="small"
-              title="Clear filter"
-            >
-              <ClearIcon />
-            </IconButton>
-          )}
         </Box>
       </Box>
 
@@ -499,13 +504,14 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
           >
             <Box sx={{ 
               py: 0.5, 
-              px: 1,
+              px: { xs: 1, sm: 1 },
               display: 'flex', 
               alignItems: 'center',
-              backgroundColor: '#2d2d2d'
+              flexWrap: 'wrap',
+              gap: { xs: 1, sm: 2 }
             }}>
               <Box className="move-buttons" sx={{ 
-                display: 'flex', 
+                display: { xs: 'none', sm: 'flex' },  // Hide on mobile
                 flexDirection: 'column', 
                 mr: 1,
                 gap: '2px'
@@ -552,7 +558,8 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
                 borderRadius: 1,
                 fontSize: '0.75rem',
                 color: 'rgba(255, 255, 255, 0.7)',
-                mr: 1
+                mr: 1,
+                order: { xs: -1, sm: 0 }  // First on mobile
               }}>
                 #{player.rank}
               </Box>
@@ -560,261 +567,239 @@ const PlayerList = ({ players, teams, onUpdatePlayer, onDeletePlayer, onMovePlay
               {editingId === player.id ? (
                 <>
                   <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center',
-                    width: 24,
-                    height: 24,
-                    justifyContent: 'center',
-                    mr: 1
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: 1,
+                    flex: 1
                   }}>
-                    {player.family && FAMILY_ICONS[player.family] && React.createElement(FAMILY_ICONS[player.family], {
-                      sx: { 
-                        color: FAMILY_COLORS[player.family],
-                        fontSize: '1.2rem'
-                      }
-                    })}
-                  </Box>
+                    <Autocomplete
+                      freeSolo
+                      value={editName}
+                      onChange={(event, newValue) => setEditName(newValue || '')}
+                      onInputChange={(event, newValue) => setEditName(newValue)}
+                      options={allNames}
+                      size="small"
+                      sx={{ width: { xs: '100%', sm: nameWidth + 40 } }}
+                      open={false}
+                      onKeyPress={(e) => handleKeyPress(e, player.id)}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          size="small"
+                          autoFocus
+                        />
+                      )}
+                    />
 
-                  <Autocomplete
-                    freeSolo
-                    value={editName}
-                    onChange={(event, newValue) => setEditName(newValue || '')}
-                    onInputChange={(event, newValue) => setEditName(newValue)}
-                    options={allNames}
-                    size="small"
-                    sx={{ width: nameWidth + 40 }}
-                    open={false}
-                    onKeyPress={(e) => handleKeyPress(e, player.id)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        size="small"
-                        autoFocus
-                      />
-                    )}
-                  />
-
-                  <Select
-                    value={editFamily}
-                    onChange={(e) => setEditFamily(e.target.value)}
-                    size="small"
-                    onKeyPress={(e) => handleKeyPress(e, player.id)}
-                    sx={{ 
-                      ml: 1, 
-                      minWidth: 100,
-                      '& .MuiSelect-select': {
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 0.5
-                      }
-                    }}
-                  >
-                    {Object.entries(FAMILY_ICONS).map(([family, Icon]) => (
-                      <MenuItem 
-                        key={family} 
-                        value={family}
-                        sx={{
+                    <Select
+                      value={editFamily}
+                      onChange={(e) => setEditFamily(e.target.value)}
+                      size="small"
+                      onKeyPress={(e) => handleKeyPress(e, player.id)}
+                      sx={{ 
+                        width: { xs: '100%', sm: 'auto' },
+                        minWidth: { sm: 100 },
+                        '& .MuiSelect-select': {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 0.5
-                        }}
-                      >
-                        <Icon sx={{ color: FAMILY_COLORS[family], fontSize: '1.2rem' }} />
-                        {family}
-                      </MenuItem>
-                    ))}
-                  </Select>
-
-                  <Select
-                    value={editSkillLevel}
-                    onChange={(e) => setEditSkillLevel(e.target.value)}
-                    size="small"
-                    onKeyPress={(e) => handleKeyPress(e, player.id)}
-                    open={openSkillDropdown}
-                    onOpen={() => setOpenSkillDropdown(true)}
-                    onClose={() => setOpenSkillDropdown(false)}
-                    sx={{ ml: 1, minWidth: 120 }}
-                  >
-                    {[1, 2, 3, 4, 5].map((level) => (
-                      <MenuItem key={level} value={level}>
-                        <Box sx={{ 
-                          display: 'flex', 
-                          alignItems: 'center',
-                          backgroundColor: getSkillLevelColor(level),
-                          px: 1,
-                          py: 0.25,
-                          borderRadius: 1,
-                          color: 'black',
-                        }}>
-                          Lvl {level} - {getSkillLevelText(level)}
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-
-                  {editingTeam === player.id ? (
-                    <Select
-                      id={`team-select-${player.id}`}
-                      value=""
-                      size="small"
-                      sx={{ 
-                        ml: 3, 
-                        minWidth: 120,
-                        '.MuiOutlinedInput-input': {
-                          py: 0.5
                         }
                       }}
-                      onChange={(e) => handleTeamChange(player.id, e.target.value)}
-                      onClose={() => setEditingTeam(null)}
-                      autoFocus
                     >
-                      <MenuItem value="">
-                        <em>No Team</em>
-                      </MenuItem>
-                      {availableTeams.map(team => (
-                        <MenuItem key={team.id} value={team.id} sx={{ display: 'flex', alignItems: 'center' }}>
-                          {getTeamIcon(team)}
-                          {team.name}
+                      {Object.entries(FAMILY_ICONS).map(([family, Icon]) => (
+                        <MenuItem 
+                          key={family} 
+                          value={family}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 0.5
+                          }}
+                        >
+                          <Icon sx={{ color: FAMILY_COLORS[family], fontSize: '1.2rem' }} />
+                          {family}
                         </MenuItem>
                       ))}
                     </Select>
-                  ) : (
-                    <Box 
-                      onClick={(e) => handleAddToTeamClick(player.id, e)}
+
+                    <Select
+                      value={editSkillLevel}
+                      onChange={(e) => {
+                        setEditSkillLevel(e.target.value);
+                        onUpdatePlayer(player.id, {
+                          ...player,
+                          skillLevel: e.target.value
+                        });
+                      }}
+                      size="small"
+                      open={openSkillDropdown}
+                      onOpen={() => setOpenSkillDropdown(true)}
+                      onClose={() => {
+                        setOpenSkillDropdown(false);
+                        setEditSkillLevel(null);
+                      }}
                       sx={{ 
-                        ml: 3,
-                        display: 'flex',
-                        alignItems: 'center',
-                        cursor: 'pointer',
-                        minWidth: 120,
-                        p: 0.5,
-                        borderRadius: 1,
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.08)'
+                        width: { xs: '100%', sm: 'auto' },
+                        minWidth: { sm: 120 },
+                        '& .MuiOutlinedInput-input': {
+                          py: 0.5
                         }
                       }}
                     >
-                      {player.teamId ? (
-                        <>
-                          {getTeamIcon(teams.find(t => t.id === player.teamId))}
-                          <Typography>{getTeamName(player.teamId).name}</Typography>
-                        </>
-                      ) : (
-                        <Typography sx={{ color: 'text.secondary' }}>Add to Team</Typography>
-                      )}
-                    </Box>
-                  )}
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <MenuItem key={level} value={level}>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center',
+                            backgroundColor: getSkillLevelColor(level),
+                            px: 1,
+                            py: 0.25,
+                            borderRadius: 1,
+                            color: 'black',
+                          }}>
+                            Lvl {level} - {getSkillLevelText(level)}
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </Select>
 
-                  <Box className="action-buttons" sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <IconButton onClick={() => handleSave(player.id)} color="primary" size="small">
-                      <SaveIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton onClick={handleCancel} color="secondary" size="small">
-                      <CancelIcon fontSize="small" />
-                    </IconButton>
+                    <Box sx={{ 
+                      display: 'flex', 
+                      gap: 0.5,
+                      justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+                      mt: { xs: 1, sm: 0 }
+                    }}>
+                      <IconButton onClick={() => handleSave(player.id)} color="primary" size="small">
+                        <SaveIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton onClick={handleCancel} color="secondary" size="small">
+                        <CancelIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </Box>
                 </>
               ) : (
                 <>
                   <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center',
-                    width: 24,
-                    height: 24,
-                    justifyContent: 'center',
-                    mr: 1
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'flex-start', sm: 'center' },
+                    gap: { xs: 1, sm: 2 },
+                    flex: 1
                   }}>
-                    {player.family && FAMILY_ICONS[player.family] && React.createElement(FAMILY_ICONS[player.family], {
-                      sx: { 
-                        color: FAMILY_COLORS[player.family],
-                        fontSize: '1.2rem'
-                      }
-                    })}
-                  </Box>
-
-                  <Box sx={{ width: nameWidth }}>{player.name}</Box>
-
-                  <Box 
-                    sx={{ 
-                      ml: 1, 
-                      display: 'flex', 
+                    <Box sx={{ 
+                      display: 'flex',
                       alignItems: 'center',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        opacity: 0.8
-                      }
-                    }}
-                    onDoubleClick={() => handleEdit(player, true)}
-                  >
-                    <Typography
-                      sx={{
-                        px: 1,
-                        py: 0.25,
-                        borderRadius: 1,
-                        fontSize: '0.75rem',
-                        backgroundColor: getSkillLevelColor(player.skillLevel),
-                        color: 'black',
-                        lineHeight: 1.2
-                      }}
-                    >
-                      Lvl {player.skillLevel}
-                    </Typography>
-                  </Box>
-
-                  {editingTeam === player.id ? (
-                    <Select
-                      id={`team-select-${player.id}`}
-                      value=""
-                      size="small"
-                      sx={{ 
-                        ml: 3, 
-                        minWidth: 120,
-                        '.MuiOutlinedInput-input': {
-                          py: 0.5
+                      gap: 1,
+                      width: { xs: '100%', sm: 'auto' }
+                    }}>
+                      {player.family && FAMILY_ICONS[player.family] && React.createElement(FAMILY_ICONS[player.family], {
+                        sx: { 
+                          color: FAMILY_COLORS[player.family],
+                          fontSize: '1.2rem'
                         }
-                      }}
-                      onChange={(e) => handleTeamChange(player.id, e.target.value)}
-                      onClose={() => setEditingTeam(null)}
-                      autoFocus
-                    >
-                      <MenuItem value="">
-                        <em>No Team</em>
-                      </MenuItem>
-                      {availableTeams.map(team => (
-                        <MenuItem key={team.id} value={team.id} sx={{ display: 'flex', alignItems: 'center' }}>
-                          {getTeamIcon(team)}
-                          {team.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  ) : (
+                      })}
+                      <Typography>{player.name}</Typography>
+                    </Box>
+
                     <Box 
-                      onClick={(e) => handleAddToTeamClick(player.id, e)}
                       sx={{ 
-                        ml: 3,
                         display: 'flex',
                         alignItems: 'center',
-                        cursor: 'pointer',
-                        minWidth: 120,
-                        p: 0.5,
-                        borderRadius: 1,
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.08)'
-                        }
+                        gap: 2,
+                        width: { xs: '100%', sm: 'auto' },
+                        justifyContent: { xs: 'space-between', sm: 'flex-start' }
                       }}
                     >
-                      {player.teamId ? (
-                        <>
-                          {getTeamIcon(teams.find(t => t.id === player.teamId))}
-                          <Typography>{getTeamName(player.teamId).name}</Typography>
-                        </>
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            opacity: 0.8
+                          }
+                        }}
+                        onDoubleClick={() => handleEdit(player, true)}
+                      >
+                        <Typography
+                          sx={{
+                            px: 1,
+                            py: 0.25,
+                            borderRadius: 1,
+                            fontSize: '0.75rem',
+                            backgroundColor: getSkillLevelColor(player.skillLevel),
+                            color: 'black',
+                            lineHeight: 1.2
+                          }}
+                        >
+                          Lvl {player.skillLevel}
+                        </Typography>
+                      </Box>
+
+                      {editingTeam === player.id ? (
+                        <Select
+                          id={`team-select-${player.id}`}
+                          value=""
+                          size="small"
+                          sx={{ 
+                            width: { xs: '100%', sm: 'auto' },
+                            minWidth: { sm: 120 },
+                            '.MuiOutlinedInput-input': {
+                              py: 0.5
+                            }
+                          }}
+                          onChange={(e) => handleTeamChange(player.id, e.target.value)}
+                          onClose={() => setEditingTeam(null)}
+                          autoFocus
+                        >
+                          <MenuItem value="">
+                            <em>No Team</em>
+                          </MenuItem>
+                          {availableTeams.map(team => (
+                            <MenuItem key={team.id} value={team.id} sx={{ display: 'flex', alignItems: 'center' }}>
+                              {getTeamIcon(team)}
+                              {team.name}
+                            </MenuItem>
+                          ))}
+                        </Select>
                       ) : (
-                        <Typography sx={{ color: 'text.secondary' }}>Add to Team</Typography>
+                        <Box 
+                          onClick={(e) => handleAddToTeamClick(player.id, e)}
+                          sx={{ 
+                            display: 'flex',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            minWidth: { sm: 120 },
+                            p: 0.5,
+                            borderRadius: 1,
+                            '&:hover': {
+                              backgroundColor: 'rgba(255, 255, 255, 0.08)'
+                            }
+                          }}
+                        >
+                          {player.teamId ? (
+                            <>
+                              {getTeamIcon(teams.find(t => t.id === player.teamId))}
+                              <Typography>{getTeamName(player.teamId).name}</Typography>
+                            </>
+                          ) : (
+                            <Typography sx={{ color: 'text.secondary' }}>Add to Team</Typography>
+                          )}
+                        </Box>
                       )}
                     </Box>
-                  )}
+                  </Box>
 
-                  <Box className="action-buttons" sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Box className="action-buttons" sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 0.5,
+                    ml: { xs: 0, sm: 'auto' },
+                    width: { xs: '100%', sm: 'auto' },
+                    justifyContent: { xs: 'flex-end', sm: 'flex-start' },
+                    mt: { xs: 1, sm: 0 }
+                  }}>
                     <IconButton onClick={() => handleEdit(player)} size="small">
                       <EditIcon fontSize="small" />
                     </IconButton>
