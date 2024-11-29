@@ -16,6 +16,9 @@ import {
   Card,
   CardContent,
   Avatar,
+  ButtonGroup,
+  Menu,
+  MenuItem,
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
@@ -42,6 +45,8 @@ import PsychologyIcon from '@mui/icons-material/Psychology';
 import CloudIcon from '@mui/icons-material/Cloud';
 import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
 import AirIcon from '@mui/icons-material/Air';
+import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { ref, onValue, get } from 'firebase/database';
 import { db } from '../firebase-config';
 import { keyframes } from '@mui/system';
@@ -214,8 +219,8 @@ const GameCard = ({ game, isCurrent, isPast, isFuture }) => {
 };
 
 // Constants for durations
-const GAME_DURATION = 45; // 45 seconds for testing
-const BREAK_DURATION = 30; // 30 seconds for testing
+const GAME_DURATION = 420; // 7 minutes (7 * 60 seconds)
+const BREAK_DURATION = 120; // 2 minutes (2 * 60 seconds)
 
 // Helper function to format time
 const formatTime = (seconds) => {
@@ -282,6 +287,8 @@ const GameSchedule = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [backupTimer, setBackupTimer] = useState(null);
   const [lastIntervalChange, setLastIntervalChange] = useState(Date.now());
+  const [resetAnchorEl, setResetAnchorEl] = useState(null);
+  const openResetMenu = Boolean(resetAnchorEl);
   
   // All refs
   const timerRef = useRef(null);
@@ -488,6 +495,79 @@ const GameSchedule = () => {
     if (isTransitioning) return;
     advanceToNextInterval();
   }, [isTransitioning, advanceToNextInterval]);
+
+  const handleResetClick = () => {
+    resetTimer();
+    setLastTickTime(Date.now());
+    startTimer();
+    setIsRunning(true);
+  };
+
+  const handleResetButtonClick = (event) => {
+    setResetAnchorEl(event.currentTarget);
+  };
+
+  const handleResetMenuClose = () => {
+    setResetAnchorEl(null);
+  };
+
+  const handleRestartTournament = () => {
+    setResetAnchorEl(null);
+    resetTimer();
+    setCurrentIntervalIndex(0);
+    setLastTickTime(Date.now());
+    startTimer();
+    setIsRunning(true);
+  };
+
+  const handleRestartRound = () => {
+    setResetAnchorEl(null);
+    
+    // If we're in a break, just reset the break timer
+    if (INTERVALS[currentIntervalIndex]?.type === 'break') {
+      resetTimer();
+      setLastTickTime(Date.now());
+      startTimer();
+      setIsRunning(true);
+      return;
+    }
+
+    // Otherwise find the start of the current round
+    let roundStartIndex = currentIntervalIndex;
+    while (roundStartIndex > 0 && INTERVALS[roundStartIndex - 1]?.type !== 'break') {
+      roundStartIndex--;
+    }
+    
+    stopTimer();
+    setCurrentIntervalIndex(roundStartIndex);
+    setTimeRemaining(GAME_DURATION);
+    setLastTickTime(Date.now());
+    startTimer();
+    setIsRunning(true);
+  };
+
+  const handleSkipBack = () => {
+    if (isTransitioning || currentIntervalIndex <= 0) return;
+
+    setIsTransitioning(true);
+    setLastIntervalChange(Date.now());
+    stopTimer();
+
+    try {
+      const prevIndex = currentIntervalIndex - 1;
+      const prevInterval = INTERVALS[prevIndex];
+      const prevDuration = prevInterval?.type === 'break' ? BREAK_DURATION : GAME_DURATION;
+
+      setCurrentIntervalIndex(prevIndex);
+      setTimeRemaining(prevDuration);
+      setLastTickTime(Date.now());
+      setIsTransitioning(false);
+    } catch (error) {
+      console.error('Error going back interval:', error);
+      setIsTransitioning(false);
+      stopTimer();
+    }
+  };
 
   // Load all tournament data
   useEffect(() => {
@@ -954,31 +1034,74 @@ const GameSchedule = () => {
               </Box>
 
               {/* Timer Controls */}
-              <Stack direction="row" spacing={2}>
-                <Button
-                  variant="contained"
-                  startIcon={isRunning ? <PauseIcon /> : <PlayArrowIcon />}
-                  onClick={toggleTimer}
-                  sx={{ minWidth: '120px' }}
-                >
-                  {isRunning ? 'Pause' : 'Start'}
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<RestartAltIcon />}
-                  onClick={resetTimer}
-                >
-                  Reset
-                </Button>
-                <Button
-                  variant="outlined"
-                  startIcon={<SkipNextIcon />}
-                  onClick={handleSkipNext}
-                  disabled={currentIntervalIndex >= INTERVALS.length - 1}
-                >
-                  Skip
-                </Button>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Tooltip title="Previous Interval">
+                  <span>
+                    <Button
+                      variant="outlined"
+                      onClick={handleSkipBack}
+                      disabled={currentIntervalIndex <= 0 || isTransitioning}
+                    >
+                      <SkipPreviousIcon />
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip title={isRunning ? "Pause" : "Start"}>
+                  <Button
+                    variant="contained"
+                    onClick={toggleTimer}
+                    sx={{ minWidth: 'unset' }}
+                  >
+                    {isRunning ? <PauseIcon /> : <PlayArrowIcon />}
+                  </Button>
+                </Tooltip>
+                <ButtonGroup variant="outlined">
+                  <Tooltip title="Reset Current Interval">
+                    <Button
+                      onClick={handleResetClick}
+                      sx={{ minWidth: 'unset' }}
+                    >
+                      <RestartAltIcon />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title="More Reset Options">
+                    <Button
+                      size="small"
+                      aria-label="select reset option"
+                      aria-haspopup="menu"
+                      onClick={handleResetButtonClick}
+                      sx={{ minWidth: 'unset', px: 0 }}
+                    >
+                      <ArrowDropDownIcon />
+                    </Button>
+                  </Tooltip>
+                </ButtonGroup>
+                <Tooltip title="Next Interval">
+                  <span>
+                    <Button
+                      variant="outlined"
+                      onClick={handleSkipNext}
+                      disabled={currentIntervalIndex >= INTERVALS.length - 1 || isTransitioning}
+                      sx={{ minWidth: 'unset' }}
+                    >
+                      <SkipNextIcon />
+                    </Button>
+                  </span>
+                </Tooltip>
               </Stack>
+
+              <Menu
+                anchorEl={resetAnchorEl}
+                open={openResetMenu}
+                onClose={handleResetMenuClose}
+              >
+                <MenuItem onClick={handleRestartRound}>
+                  Restart Current Round
+                </MenuItem>
+                <MenuItem onClick={handleRestartTournament}>
+                  Restart Tournament
+                </MenuItem>
+              </Menu>
             </Stack>
           </Grid>
 
