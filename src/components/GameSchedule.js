@@ -29,9 +29,41 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import ShieldIcon from '@mui/icons-material/Shield';
 import CastleIcon from '@mui/icons-material/Castle';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import BoltIcon from '@mui/icons-material/Bolt';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import WavesIcon from '@mui/icons-material/Waves';
+import AcUnitIcon from '@mui/icons-material/AcUnit';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import FlareIcon from '@mui/icons-material/Flare';
+import FilterVintageIcon from '@mui/icons-material/FilterVintage';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import CloudIcon from '@mui/icons-material/Cloud';
+import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
+import AirIcon from '@mui/icons-material/Air';
 import { ref, onValue, get } from 'firebase/database';
 import { db } from '../firebase-config';
 import { keyframes } from '@mui/system';
+
+// Team icons mapping
+const TEAM_ICONS = {
+  Star: StarIcon,
+  Lightning: BoltIcon,
+  Rocket: RocketLaunchIcon,
+  Fire: LocalFireDepartmentIcon,
+  Waves: WavesIcon,
+  Snowflake: AcUnitIcon,
+  Flame: WhatshotIcon,
+  Sparkle: AutoAwesomeIcon,
+  Flare: FlareIcon,
+  Flower: FilterVintageIcon,
+  Mind: PsychologyIcon,
+  Cloud: CloudIcon,
+  Leaf: EmojiNatureIcon,
+  Wind: AirIcon,
+  EmojiEvents: EmojiEventsIcon
+};
 
 // Family icons mapping
 const FAMILY_ICONS = {
@@ -75,6 +107,7 @@ const GameCard = ({ game, isCurrent, isPast, isFuture }) => {
 
     const totalSkill = getTeamSkill(players);
     const validPlayers = players?.filter(player => player && player.name) || [];
+    const TeamIcon = TEAM_ICONS[team.iconName] || TEAM_ICONS.EmojiEvents;
 
     return (
       <Box sx={{ 
@@ -92,9 +125,7 @@ const GameCard = ({ game, isCurrent, isPast, isFuture }) => {
         <Stack spacing={1}>
           {/* Team Name and Skill */}
           <Stack direction="row" alignItems="center" spacing={1}>
-            <Avatar sx={{ bgcolor: team.color || '#666', width: 24, height: 24 }}>
-              <EmojiEventsIcon sx={{ fontSize: 16 }} />
-            </Avatar>
+            <TeamIcon sx={{ color: team.color || '#666', fontSize: 20 }} />
             <Typography sx={{ flexGrow: 1, fontWeight: 'bold' }}>{team.name || 'TBD'}</Typography>
             <Chip
               icon={<StarIcon sx={{ fontSize: '0.9rem' }} />}
@@ -489,26 +520,58 @@ const GameSchedule = () => {
 
     loadData();
 
-    // Set up real-time listener for tournament updates
-    const unsubscribe = onValue(ref(db, 'tournament'), (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setTournament(data);
-        generateSchedule(data, teams, players);
+    // Set up real-time listeners for all data
+    const unsubscribeTeams = onValue(ref(db, 'teams'), (snapshot) => {
+      const teamsData = snapshot.val();
+      if (teamsData) {
+        const loadedTeams = Object.values(teamsData);
+        setTeams(loadedTeams);
+        // Regenerate schedule with new teams data if we have tournament data
+        if (tournament) {
+          generateSchedule(tournament, loadedTeams, players);
+        }
+      }
+    });
+
+    const unsubscribePlayers = onValue(ref(db, 'players'), (snapshot) => {
+      const playersData = snapshot.val();
+      if (playersData) {
+        const loadedPlayers = Object.values(playersData);
+        setPlayers(loadedPlayers);
+        // Regenerate schedule with new players data if we have tournament data
+        if (tournament) {
+          generateSchedule(tournament, teams, loadedPlayers);
+        }
+      }
+    });
+
+    const unsubscribeTournament = onValue(ref(db, 'tournament'), (snapshot) => {
+      const tournamentData = snapshot.val();
+      if (tournamentData) {
+        setTournament(tournamentData);
+        generateSchedule(tournamentData, teams, players);
       }
     });
 
     return () => {
-      unsubscribe();
+      unsubscribeTeams();
+      unsubscribePlayers();
+      unsubscribeTournament();
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
-  }, []);
+  }, []); // Empty dependency array since we're handling updates inside
 
   // Update generateSchedule to use teams and players data
-  const generateSchedule = (tournamentData, teams, players) => {
-    if (!tournamentData) return;
+  const generateSchedule = useCallback((tournamentData, teams, players) => {
+    if (!tournamentData || !teams || !players) return;
+
+    console.log('Generating schedule with:', {
+      tournamentData: !!tournamentData,
+      teamsCount: teams.length,
+      playersCount: players.length
+    });
 
     const games = [];
     
@@ -589,7 +652,7 @@ const GameSchedule = () => {
     }
 
     setSchedule(games);
-  };
+  }, []); // Empty dependency array since this is a pure function
 
   const getCurrentIntervalDuration = () => {
     const currentInterval = INTERVALS[currentIntervalIndex];

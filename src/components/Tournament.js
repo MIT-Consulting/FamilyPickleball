@@ -17,12 +17,50 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import { ColorModeContext } from '../App';
 import { ref, set, get } from 'firebase/database';
 import { db } from '../firebase-config';
-import * as Icons from '@mui/icons-material';
 import ShieldIcon from '@mui/icons-material/Shield';
 import CastleIcon from '@mui/icons-material/Castle';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import StarIcon from '@mui/icons-material/Star';
+import BoltIcon from '@mui/icons-material/Bolt';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import WavesIcon from '@mui/icons-material/Waves';
+import AcUnitIcon from '@mui/icons-material/AcUnit';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import FlareIcon from '@mui/icons-material/Flare';
+import FilterVintageIcon from '@mui/icons-material/FilterVintage';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import CloudIcon from '@mui/icons-material/Cloud';
+import EmojiNatureIcon from '@mui/icons-material/EmojiNature';
+import AirIcon from '@mui/icons-material/Air';
 import { keyframes } from '@mui/system';
+
+// Team icons mapping
+const TEAM_ICONS = {
+  Star: StarIcon,
+  Lightning: BoltIcon,
+  Rocket: RocketLaunchIcon,
+  Fire: LocalFireDepartmentIcon,
+  Waves: WavesIcon,
+  Snowflake: AcUnitIcon,
+  Flame: WhatshotIcon,
+  Sparkle: AutoAwesomeIcon,
+  Flare: FlareIcon,
+  Flower: FilterVintageIcon,
+  Mind: PsychologyIcon,
+  Cloud: CloudIcon,
+  Leaf: EmojiNatureIcon,
+  Wind: AirIcon,
+  EmojiEvents: EmojiEventsIcon
+};
+
+// Family icons mapping
+const FAMILY_ICONS = {
+  Miller: ShieldIcon,
+  Holcomb: CastleIcon,
+  Burton: AccountBalanceIcon
+};
 
 // Initial bracket structure for 12 teams
 const createInitialBracket = (teams, players) => {
@@ -163,12 +201,6 @@ const createInitialBracket = (teams, players) => {
   };
 };
 
-const FAMILY_ICONS = {
-  Miller: ShieldIcon,
-  Holcomb: CastleIcon,
-  Burton: AccountBalanceIcon
-};
-
 const FAMILY_COLORS = {
   Miller: '#90caf9',
   Holcomb: '#c48b9f',
@@ -178,7 +210,7 @@ const FAMILY_COLORS = {
 const Match = ({ match, onWinnerSelect, players, isFinals, handleTeamContextMenu }) => {
   const getTeamIcon = (team) => {
     if (!team) return null;
-    const IconComponent = Icons[team.iconName] || Icons.EmojiEvents;
+    const IconComponent = TEAM_ICONS[team.iconName] || TEAM_ICONS.EmojiEvents;
     return <IconComponent sx={{ color: team.color, fontSize: 20 }} />;
   };
 
